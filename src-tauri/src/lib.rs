@@ -1,5 +1,6 @@
 mod core;
 mod plugins;
+mod screenshot;
 
 use core::{prevent_default, setup};
 use std::env;
@@ -188,6 +189,10 @@ pub fn run() {
             plugins::text_expansion::commands::set_text_expansion_prefix,
             plugins::text_expansion::commands::set_text_expansions,
             plugins::text_expansion::commands::set_text_expansion_enabled,
+            screenshot::get_monitors,
+            screenshot::capture_screen,
+            screenshot::show_screenshot_window,
+            screenshot::hide_screenshot_window,
         ])
         .on_window_event(|window, event| match event {
             // 让 app 保持在后台运行：https://tauri.app/v1/guides/features/system-tray/#preventing-the-app-from-closing

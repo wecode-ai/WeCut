@@ -4,45 +4,54 @@ import {
   type ShortcutHandler,
   unregister,
 } from "@tauri-apps/plugin-global-shortcut";
-import { useAsyncEffect, useUnmount } from "ahooks";
+import { useUnmount } from "ahooks";
 import { castArray } from "es-toolkit/compat";
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 
 export const useRegister = (
   handler: ShortcutHandler,
   deps: Array<string | string[] | undefined>,
 ) => {
-  const [oldShortcuts, setOldShortcuts] = useState(deps[0]);
+  const [shortcuts] = deps;
+  const oldShortcutsRef = useRef<string | string[] | undefined>(undefined);
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
 
-  useAsyncEffect(async () => {
-    const [shortcuts] = deps;
+  useEffect(() => {
+    let cancelled = false;
 
-    for await (const shortcut of castArray(oldShortcuts)) {
-      if (!shortcut) continue;
-
-      const registered = await isRegistered(shortcut);
-
-      if (registered) {
-        await unregister(shortcut);
+    const run = async () => {
+      // 注销旧快捷键
+      for (const shortcut of castArray(oldShortcutsRef.current)) {
+        if (!shortcut) continue;
+        const registered = await isRegistered(shortcut);
+        if (registered) {
+          await unregister(shortcut);
+        }
       }
-    }
 
-    if (!shortcuts) return;
+      if (cancelled) return;
+      if (!shortcuts) return;
 
-    await register(shortcuts, (event) => {
-      if (event.state === "Released") return;
+      await register(shortcuts, (event) => {
+        if (event.state === "Released") return;
+        handlerRef.current(event);
+      });
 
-      handler(event);
-    });
+      oldShortcutsRef.current = shortcuts;
+    };
 
-    setOldShortcuts(shortcuts);
-  }, deps);
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shortcuts]);
 
   useUnmount(() => {
-    const [shortcuts] = deps;
-
-    if (!shortcuts) return;
-
-    unregister(shortcuts);
+    const current = oldShortcutsRef.current;
+    if (!current) return;
+    unregister(current);
   });
 };

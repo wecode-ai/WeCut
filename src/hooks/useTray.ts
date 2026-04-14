@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
 import { resolveResource } from "@tauri-apps/api/path";
@@ -12,6 +13,19 @@ import { isMac } from "@/utils/is";
 import { useSubscribeKey } from "./useSubscribeKey";
 
 const TRAY_ID = "app-tray";
+
+const triggerScreenshot = async () => {
+  try {
+    // Hide main window first
+    await invoke("plugin:eco-window|hide_window");
+    // Small delay to allow main window to hide
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Show screenshot window on primary monitor (index 0)
+    await invoke("show_screenshot_window", { monitorIndex: 0 });
+  } catch {
+    // Screenshot trigger failed
+  }
+};
 
 export const useTray = () => {
   const [startListen, { toggle }] = useBoolean(true);
@@ -94,16 +108,11 @@ export const useTray = () => {
           ? t("component.tray.label.stop_listening")
           : t("component.tray.label.start_listening"),
       }),
+      MenuItem.new({
+        action: triggerScreenshot,
+        text: t("component.tray.label.screenshot", "截图"),
+      }),
       PredefinedMenuItem.new({ item: "Separator" }),
-      // 暂时隐藏托盘菜单中的检查更新选项
-      // MenuItem.new({
-      //   action: () => {
-      //     showWindow();
-      //
-      //     emit(LISTEN_KEY.UPDATE_APP, true);
-      //   },
-      //   text: t("component.tray.label.check_update"),
-      // }),
       PredefinedMenuItem.new({ item: "Separator" }),
       MenuItem.new({
         enabled: false,

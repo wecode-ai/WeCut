@@ -35,6 +35,7 @@ export interface GlobalStore {
   shortcut: {
     clipboard: string;
     preference?: string;
+    screenshot?: string;
     quickPaste: {
       enable: boolean;
       value: string;
@@ -47,6 +48,14 @@ export interface GlobalStore {
     };
     // 兼容旧配置
     send?: string;
+  };
+
+  // 截图配置
+  screenshot?: {
+    shortcut: string;
+    saveFormat: "png" | "jpg";
+    defaultAction: "copy" | "save" | "menu";
+    saveToHistory: boolean;
   };
 
   // 只在当前系统环境使用

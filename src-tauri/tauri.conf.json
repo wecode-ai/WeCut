@@ -83,6 +83,24 @@
         "url": "index.html/#/send-modal",
         "visible": false,
         "width": 520
+      },
+      {
+        "acceptFirstMouse": true,
+        "alwaysOnTop": true,
+        "decorations": false,
+        "height": 1080,
+        "label": "screenshot",
+        "maximizable": false,
+        "resizable": true,
+        "skipTaskbar": true,
+        "title": "截图",
+        "transparent": true,
+        "url": "index.html/#/screenshot",
+        "visible": false,
+        "visibleOnAllWorkspaces": true,
+        "width": 1920,
+        "x": 0,
+        "y": 0
       }
     ]
   },

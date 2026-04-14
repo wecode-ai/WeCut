@@ -10,12 +10,33 @@ import {
 import { platform } from "@tauri-apps/plugin-os";
 import { omit } from "es-toolkit/compat";
 import { getLocale } from "tauri-plugin-locale-api";
+import { keys } from "@/components/ProShortcut/keyboard";
 import { clipboardStore } from "@/stores/clipboard";
 import { globalStore } from "@/stores/global";
 import type { Language, Store } from "@/types/store";
 import { DEFAULTS } from "@/utils/envConfig";
 import { deepAssign } from "./object";
 import { getSaveStorePath } from "./path";
+
+/**
+ * 将 hookKey 格式的快捷键（如 "meta.shift.x"）转换为 tauriKey 格式（如 "Command+Shift+KeyX"）
+ * 如果已经是 tauriKey 格式则原样返回
+ */
+const migrateShortcutToTauriFormat = (shortcut: string): string => {
+  if (!shortcut) return shortcut;
+
+  // 如果包含 + 分隔符，说明已经是 tauriKey 格式
+  if (shortcut.includes("+")) return shortcut;
+
+  // hookKey 格式用 . 分隔
+  const parts = shortcut.split(".");
+  const tauriParts = parts.map((part) => {
+    const matched = keys.find((k) => k.hookKey === part);
+    return matched?.tauriKey ?? part;
+  });
+
+  return tauriParts.join("+");
+};
 
 /**
  * 初始化配置项
@@ -52,6 +73,9 @@ const initStore = async () => {
     }
   }
 
+  // 数据迁移：截图快捷键格式从 hookKey 迁移到 tauriKey
+  migrateScreenshotShortcut();
+
   // 数据迁移：从旧版 aiSend 配置迁移到新版结构
   migrateAiSendConfig();
 
@@ -64,6 +88,22 @@ const initStore = async () => {
   }
 
   await mkdir(globalStore.env.saveDataDir, { recursive: true });
+};
+
+/**
+ * 迁移截图快捷键格式：从 hookKey（meta.shift.x）迁移到 tauriKey（Command+Shift+KeyX）
+ */
+const migrateScreenshotShortcut = () => {
+  const screenshotShortcut = globalStore.shortcut.screenshot;
+
+  if (screenshotShortcut?.includes(".")) {
+    const migrated = migrateShortcutToTauriFormat(screenshotShortcut);
+    globalStore.shortcut.screenshot = migrated;
+
+    if (globalStore.screenshot) {
+      globalStore.screenshot.shortcut = migrated;
+    }
+  }
 };
 
 /**
