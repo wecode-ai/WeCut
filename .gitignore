@@ -23,3 +23,18 @@ auto-imports.d.ts
 *.njsproj
 *.sln
 *.sw?
+.worktrees/
+
+# Tauri signing keys
+tauri.key
+tauri.key.pub
+
+# Environment variables
+.env
+
+# Documentation
+docs/superpowers/
+
+# VIBE CODE
+.superpowers/
+.claude/

@@ -1,0 +1,30 @@
+[package]
+name = "tauri-plugin-eco-active-app"
+version = "0.1.0"
+authors = []
+description = "获取当前活跃应用信息的插件"
+edition = "2021"
+rust-version = "1.77.2"
+links = "tauri-plugin-eco-active-app"
+
+[dependencies]
+tauri.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+log.workspace = true
+
+[build-dependencies]
+tauri-plugin.workspace = true
+
+[target."cfg(target_os = \"macos\")".dependencies]
+cocoa.workspace = true
+objc = ">=0.2, <1"
+
+[target."cfg(target_os = \"windows\")".dependencies]
+winapi = { version = ">=0.3, <1", features = ["winuser", "windef", "processthreadsapi", "handleapi", "winbase", "psapi"] }
+
+[target."cfg(target_os = \"linux\")".dependencies]
+x11 = "2"
+
+[features]
+cargo-clippy = []

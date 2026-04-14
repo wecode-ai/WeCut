@@ -1,4 +1,5 @@
 import { getName, getVersion } from "@tauri-apps/api/app";
+import { invoke } from "@tauri-apps/api/core";
 import { appDataDir } from "@tauri-apps/api/path";
 import {
   exists,
@@ -12,6 +13,7 @@ import { getLocale } from "tauri-plugin-locale-api";
 import { clipboardStore } from "@/stores/clipboard";
 import { globalStore } from "@/stores/global";
 import type { Language, Store } from "@/types/store";
+import { DEFAULTS } from "@/utils/envConfig";
 import { deepAssign } from "./object";
 import { getSaveStorePath } from "./path";
 
@@ -25,12 +27,164 @@ const initStore = async () => {
   globalStore.env.appVersion = await getVersion();
   globalStore.env.saveDataDir ??= await appDataDir();
 
+  // 读取系统环境变量控制功能开关
+  const wegentChatEnv = await invoke<string | null>("get_system_env", {
+    key: "ECO_FEATURE_WEGENT_CHAT",
+  });
+  globalStore.env.features = {
+    wegentChat: wegentChatEnv === "1" || wegentChatEnv === "true",
+  };
+
   // @ts-expect-error
   if (clipboardStore.window.style === "float") {
     clipboardStore.window.style = "standard";
   }
 
+  // 数据迁移：确保 operationButtons 包含 send
+  const operationButtons = clipboardStore.content.operationButtons;
+  if (!operationButtons.includes("send")) {
+    // 在 delete 之前插入 send
+    const deleteIndex = operationButtons.indexOf("delete");
+    if (deleteIndex !== -1) {
+      operationButtons.splice(deleteIndex, 0, "send");
+    } else {
+      operationButtons.push("send");
+    }
+  }
+
+  // 数据迁移：从旧版 aiSend 配置迁移到新版结构
+  migrateAiSendConfig();
+
+  // 数据迁移：从旧配置迁移到新的 wegent 结构
+  migrateToWegentConfig();
+
+  // 恢复 UI 状态：从 persisted ui.activeTagId 恢复 activeTagId
+  if (clipboardStore.ui?.activeTagId !== undefined) {
+    clipboardStore.activeTagId = clipboardStore.ui.activeTagId;
+  }
+
   await mkdir(globalStore.env.saveDataDir, { recursive: true });
+};
+
+/**
+ * 迁移 AI 发送配置
+ * 从旧版 aiSend 配置（包含所有字段）迁移到新版结构（aiSend + aiChatConfig + workQueueConfig）
+ */
+const migrateAiSendConfig = () => {
+  const aiSend = clipboardStore.aiSend;
+
+  // 如果存在旧版 aiSend 配置（有 baseUrl 字段），进行迁移
+  if (aiSend && "baseUrl" in aiSend) {
+    const oldConfig = aiSend as any;
+
+    // 迁移到 aiChatConfig
+    clipboardStore.aiChatConfig = {
+      apiKey: oldConfig.apiKey || "",
+      baseUrl: oldConfig.baseUrl || DEFAULTS.AI_CHAT_URL,
+      customHeaders: oldConfig.customHeaders || {},
+      model: oldConfig.model || DEFAULTS.AI_MODEL,
+    };
+
+    // 初始化 workQueueConfig
+    clipboardStore.workQueueConfig = {
+      apiToken: "",
+      baseUrl: DEFAULTS.WORK_QUEUE_URL,
+      defaults: {
+        note: "",
+        title: "",
+      },
+      queueName: "",
+    };
+
+    // 更新 aiSend 为基础配置
+    clipboardStore.aiSend = {
+      enabled: oldConfig.enabled ?? true,
+      serviceType: "aiChat",
+      showInUI: oldConfig.showInUI ?? true,
+    };
+  }
+
+  // 确保 aiSend 配置存在
+  if (!clipboardStore.aiSend) {
+    clipboardStore.aiSend = {
+      enabled: true,
+      serviceType: "aiChat",
+      showInUI: true,
+    };
+  }
+
+  // 确保 aiSend.serviceType 存在（从旧版本迁移）
+  if (!clipboardStore.aiSend.serviceType) {
+    clipboardStore.aiSend.serviceType = "aiChat";
+  }
+
+  // 确保 aiChatConfig 存在
+  if (!clipboardStore.aiChatConfig) {
+    clipboardStore.aiChatConfig = {
+      apiKey: "",
+      baseUrl: DEFAULTS.AI_CHAT_URL,
+      customHeaders: {},
+      model: DEFAULTS.AI_MODEL,
+    };
+  }
+
+  // 确保 workQueueConfig 存在
+  if (!clipboardStore.workQueueConfig) {
+    clipboardStore.workQueueConfig = {
+      apiToken: "",
+      baseUrl: DEFAULTS.WORK_QUEUE_URL,
+      defaults: {
+        note: "",
+        title: "",
+      },
+      queueName: "",
+    };
+  }
+};
+
+/**
+ * 迁移到新的 wegent 配置结构
+ * 从旧版 aiSend/aiChatConfig/workQueueConfig 迁移到新的 wegent 结构
+ */
+const migrateToWegentConfig = () => {
+  // 如果 wegent 配置已存在，跳过迁移
+  if (clipboardStore.wegent) {
+    return;
+  }
+
+  const aiSend = clipboardStore.aiSend;
+  const aiChatConfig = clipboardStore.aiChatConfig;
+  const workQueueConfig = clipboardStore.workQueueConfig;
+
+  // 初始化 wegent 配置
+  clipboardStore.wegent = {
+    aiChat: {
+      apiKey: aiChatConfig?.apiKey || "",
+      baseUrl: aiChatConfig?.baseUrl || DEFAULTS.AI_CHAT_URL,
+      customHeaders: aiChatConfig?.customHeaders || {},
+      enabled: aiSend?.enabled ?? true,
+      model: aiChatConfig?.model || DEFAULTS.AI_MODEL,
+    },
+    workQueue: {
+      apiToken: workQueueConfig?.apiToken || "",
+      baseUrl: workQueueConfig?.baseUrl || DEFAULTS.WORK_QUEUE_URL,
+      defaults: {
+        note: workQueueConfig?.defaults?.note || "",
+        title: workQueueConfig?.defaults?.title || "",
+      },
+      enabled: aiSend?.serviceType === "workQueue",
+      queueName: workQueueConfig?.queueName || "",
+    },
+  };
+
+  // 迁移快捷键配置
+  if (globalStore.shortcut.send && !globalStore.shortcut.wegent) {
+    // 旧配置只有一个 send 快捷键，迁移到 aiChat
+    globalStore.shortcut.wegent = {
+      aiChat: globalStore.shortcut.send,
+      workQueue: "",
+    };
+  }
 };
 
 /**
@@ -42,7 +196,8 @@ export const saveStore = async (backup = false) => {
 
   const path = await getSaveStorePath(backup);
 
-  return writeTextFile(path, JSON.stringify(store, null, 2));
+  const content = JSON.stringify(store, null, 2);
+  return writeTextFile(path, content);
 };
 
 /**

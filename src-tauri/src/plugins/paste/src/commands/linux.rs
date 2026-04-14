@@ -116,21 +116,30 @@ fn focus_previous_window() {
     }
 }
 
+// 检查辅助功能权限（Linux 不需要特殊权限，直接返回 true）
+#[command]
+pub async fn check_accessibility_permission() -> Result<bool, String> {
+    Ok(true)
+}
+
 // 粘贴
 #[command]
-pub async fn paste() {
-    fn dispatch(event_type: &EventType) {
+pub async fn paste() -> Result<(), String> {
+    fn dispatch(event_type: &EventType) -> Result<(), String> {
         wait(20);
 
-        simulate(event_type).unwrap();
+        simulate(event_type).map_err(|e| format!("Failed to simulate event: {:?}", e))?;
+        Ok(())
     }
 
     focus_previous_window();
 
     wait(100);
 
-    dispatch(&EventType::KeyPress(Key::ShiftLeft));
-    dispatch(&EventType::KeyPress(Key::Insert));
-    dispatch(&EventType::KeyRelease(Key::Insert));
-    dispatch(&EventType::KeyRelease(Key::ShiftLeft));
+    dispatch(&EventType::KeyPress(Key::ShiftLeft))?;
+    dispatch(&EventType::KeyPress(Key::Insert))?;
+    dispatch(&EventType::KeyRelease(Key::Insert))?;
+    dispatch(&EventType::KeyRelease(Key::ShiftLeft))?;
+
+    Ok(())
 }

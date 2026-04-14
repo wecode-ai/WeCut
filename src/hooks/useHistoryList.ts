@@ -4,9 +4,12 @@ import { isString } from "es-toolkit";
 import { unionBy } from "es-toolkit/compat";
 import { useContext } from "react";
 import { getDefaultSaveImagePath } from "tauri-plugin-clipboard-x-api";
+import { useSnapshot } from "valtio";
 import { LISTEN_KEY } from "@/constants";
 import { selectHistory } from "@/database/history";
+import { getTagHistoryIds } from "@/database/tag";
 import { MainContext } from "@/pages/Main";
+import { clipboardStore } from "@/stores/clipboard";
 import { isBlank } from "@/utils/is";
 import { getSaveImagePath, join } from "@/utils/path";
 import { useTauriListen } from "./useTauriListen";
@@ -18,6 +21,7 @@ interface Options {
 export const useHistoryList = (options: Options) => {
   const { scrollToTop } = options;
   const { rootState } = useContext(MainContext);
+  const { activeTagId } = useSnapshot(clipboardStore);
   const state = useReactive({
     loading: false,
     noMore: false,
@@ -33,15 +37,32 @@ export const useHistoryList = (options: Options) => {
 
       const { page } = state;
 
+      // 获取标签筛选的历史ID列表
+      let tagHistoryIds: string[] = [];
+      if (activeTagId) {
+        tagHistoryIds = await getTagHistoryIds(activeTagId);
+      }
+
       const list = await selectHistory((qb) => {
         const { size } = state;
         const { group, search } = rootState;
         const isFavoriteGroup = group === "favorite";
         const isNormalGroup = group !== "all" && !isFavoriteGroup;
+        const isTagGroup = !!activeTagId;
 
         return qb
-          .$if(isFavoriteGroup, (eb) => eb.where("favorite", "=", true))
-          .$if(isNormalGroup, (eb) => eb.where("group", "=", group))
+          .$if(isTagGroup && tagHistoryIds.length > 0, (eb) =>
+            eb.where("id", "in", tagHistoryIds),
+          )
+          .$if(isTagGroup && tagHistoryIds.length === 0, (eb) =>
+            eb.where("id", "=", "__NO_MATCH__"),
+          )
+          .$if(!isTagGroup && isFavoriteGroup, (eb) =>
+            eb.where("favorite", "=", true),
+          )
+          .$if(!isTagGroup && isNormalGroup, (eb) =>
+            eb.where("group", "=", group),
+          )
           .$if(!isBlank(search), (eb) => {
             return eb.where((eb) => {
               return eb.or([
@@ -115,7 +136,7 @@ export const useHistoryList = (options: Options) => {
     await reload();
 
     rootState.activeId = rootState.list[0]?.id;
-  }, [rootState.group, rootState.search]);
+  }, [rootState.group, rootState.search, activeTagId]);
 
   return {
     loadMore,

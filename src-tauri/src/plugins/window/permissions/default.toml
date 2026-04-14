@@ -2,4 +2,13 @@
 
 [default]
 description = "Default permissions for the plugin"
-permissions = ["allow-show-window", "allow-hide-window", "allow-show-taskbar-icon"]
+permissions = [
+  "allow-show-window",
+  "allow-hide-window",
+  "allow-show-taskbar-icon",
+  "allow-show-toast-window",
+  "allow-hide-toast-window",
+  "allow-show-send-modal-window",
+  "allow-hide-send-modal-window",
+  "allow-close-send-modal-window",
+]

@@ -1,32 +1,18 @@
-import { AlipayOutlined, QqOutlined, WechatOutlined } from "@ant-design/icons";
 import { getTauriVersion } from "@tauri-apps/api/app";
-import { emit } from "@tauri-apps/api/event";
+import { appLogDir } from "@tauri-apps/api/path";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { arch, version } from "@tauri-apps/plugin-os";
-import { useBoolean, useCreation } from "ahooks";
-import { Avatar, Button, Image, message } from "antd";
-import { useState } from "react";
+import { Avatar, Button, message } from "antd";
 import { useTranslation } from "react-i18next";
 import { writeText } from "tauri-plugin-clipboard-x-api";
 import { useSnapshot } from "valtio";
 import ProList from "@/components/ProList";
 import ProListItem from "@/components/ProListItem";
-import {
-  GITHUB_ISSUES_LINK,
-  GITHUB_LINK,
-  LISTEN_KEY,
-  WEBSITE_LINK,
-} from "@/constants";
 import { globalStore } from "@/stores/global";
 
 const About = () => {
-  const { appearance, env } = useSnapshot(globalStore);
+  const { env } = useSnapshot(globalStore);
   const { t } = useTranslation();
-  const [visible, { toggle }] = useBoolean();
-  const [imageSrc, setImageSrc] = useState("");
-
-  const theme = useCreation(() => {
-    return appearance.isDark ? "dark" : "light";
-  }, [appearance.isDark]);
 
   const copyInfo = async () => {
     const { appName, appVersion, platform } = env;
@@ -45,9 +31,13 @@ const About = () => {
     message.success(t("preference.about.about_software.hints.copy_success"));
   };
 
-  const previewImage = (src: string) => {
-    setImageSrc(WEBSITE_LINK + src);
-    toggle();
+  const openLogDir = async () => {
+    try {
+      const logDir = await appLogDir();
+      await openPath(logDir);
+    } catch (err) {
+      message.error(String(err));
+    }
   };
 
   return (
@@ -57,14 +47,15 @@ const About = () => {
         description={`${t("preference.about.about_software.label.version")}v${env.appVersion}`}
         title={env.appName}
       >
-        <Button
+        {/* 暂时隐藏检查更新按钮 */}
+        {/* <Button
           onClick={() => {
             emit(LISTEN_KEY.UPDATE_APP, true);
           }}
           type="primary"
         >
           {t("preference.about.about_software.button.check_update")}
-        </Button>
+        </Button> */}
       </ProListItem>
 
       <ProListItem
@@ -77,56 +68,13 @@ const About = () => {
       </ProListItem>
 
       <ProListItem
-        description={<a href={GITHUB_LINK}>{GITHUB_LINK}</a>}
-        title={t("preference.about.about_software.label.open_source_address")}
+        description={t("preference.about.about_software.hints.open_log_dir")}
+        title={t("preference.about.about_software.label.log_file")}
       >
-        <Button danger href={GITHUB_ISSUES_LINK}>
-          {t("preference.about.about_software.button.feedback_issue")}
+        <Button onClick={openLogDir}>
+          {t("preference.about.about_software.button.open_log_dir")}
         </Button>
       </ProListItem>
-
-      <ProListItem title={t("preference.about.about_software.label.community")}>
-        <Button
-          className="hover:b-wechat!"
-          icon={<WechatOutlined className="text-wechat" />}
-          onClick={() => {
-            previewImage(`/community/wechat-group-${theme}.png`);
-          }}
-        />
-        <Button
-          className="hover:b-qq!"
-          icon={<QqOutlined className="text-qq" />}
-          onClick={() => {
-            previewImage(`/community/qq-group-${theme}.png`);
-          }}
-        />
-      </ProListItem>
-
-      <ProListItem title={t("preference.about.about_software.label.sponsor")}>
-        <Button
-          className="hover:b-wechat!"
-          icon={<WechatOutlined className="text-wechat" />}
-          onClick={() => {
-            previewImage("/sponsor/wechat-pay.png");
-          }}
-        />
-        <Button
-          className="hover:b-alipay!"
-          icon={<AlipayOutlined className="text-alipay" />}
-          onClick={() => {
-            previewImage("/sponsor/ali-pay.png");
-          }}
-        />
-      </ProListItem>
-
-      <Image
-        hidden
-        preview={{
-          onVisibleChange: toggle,
-          src: imageSrc,
-          visible,
-        }}
-      />
     </ProList>
   );
 };

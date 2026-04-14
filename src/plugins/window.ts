@@ -3,15 +3,57 @@ import { emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { PhysicalPosition, PhysicalSize } from "@tauri-apps/api/window";
 import { LISTEN_KEY, WINDOW_LABEL } from "@/constants";
+import { calculateMainWindowLayout } from "@/plugins/window-layout";
 import { clipboardStore } from "@/stores/clipboard";
 import type { WindowLabel } from "@/types/plugin";
 import { isLinux } from "@/utils/is";
 import { getCursorMonitor } from "@/utils/monitor";
+import { getPreferredWindowState } from "@/utils/windowState";
 
 const COMMAND = {
+  HIDE_TOAST_WINDOW: "plugin:eco-window|hide_toast_window",
   HIDE_WINDOW: "plugin:eco-window|hide_window",
   SHOW_TASKBAR_ICON: "plugin:eco-window|show_taskbar_icon",
+  SHOW_TOAST_WINDOW: "plugin:eco-window|show_toast_window",
   SHOW_WINDOW: "plugin:eco-window|show_window",
+};
+
+export const applyMainWindowLayout = async () => {
+  const appWindow = getCurrentWebviewWindow();
+
+  if (appWindow.label !== WINDOW_LABEL.MAIN) return;
+
+  const [{ window }, scaleFactor, monitor, currentSize, preferredState] =
+    await Promise.all([
+      Promise.resolve(clipboardStore),
+      appWindow.scaleFactor(),
+      getCursorMonitor(),
+      appWindow.innerSize(),
+      getPreferredWindowState(appWindow.label),
+    ]);
+
+  const nextLayout = calculateMainWindowLayout({
+    currentSize,
+    dockScale: window.dockScale,
+    fallbackState: preferredState,
+    monitor,
+    savedState: preferredState,
+    scaleFactor,
+    style: window.style,
+    windowPosition: window.position,
+  });
+
+  if (nextLayout.size) {
+    await appWindow.setSize(
+      new PhysicalSize(nextLayout.size.width, nextLayout.size.height),
+    );
+  }
+
+  if (nextLayout.position) {
+    await appWindow.setPosition(
+      new PhysicalPosition(nextLayout.position.x, nextLayout.position.y),
+    );
+  }
 };
 
 /**
@@ -56,39 +98,7 @@ export const toggleWindowVisible = async () => {
       await emit(LISTEN_KEY.ACTIVATE_BACK_TOP);
     }
 
-    if (window.style === "standard" && window.position !== "remember") {
-      const monitor = await getCursorMonitor();
-
-      if (monitor) {
-        const { position, size, cursorPoint } = monitor;
-        const { width, height } = await appWindow.innerSize();
-        let { x, y } = cursorPoint;
-
-        if (window.position === "follow") {
-          x = Math.min(x, position.x + size.width - width);
-          y = Math.min(y, position.y + size.height - height);
-        } else {
-          x = position.x + (size.width - width) / 2;
-          y = position.y + (size.height - height) / 2;
-        }
-
-        await appWindow.setPosition(
-          new PhysicalPosition(Math.round(x), Math.round(y)),
-        );
-      }
-    } else if (window.style === "dock") {
-      const monitor = await getCursorMonitor();
-
-      if (monitor) {
-        const { width, height } = monitor.size;
-        const { x } = monitor.position;
-        const windowHeight = 400;
-        const y = height - windowHeight;
-
-        await appWindow.setSize(new PhysicalSize(width, windowHeight));
-        await appWindow.setPosition(new PhysicalPosition(x, y));
-      }
-    }
+    await applyMainWindowLayout();
   }
 
   showWindow();
@@ -99,4 +109,18 @@ export const toggleWindowVisible = async () => {
  */
 export const showTaskbarIcon = (visible = true) => {
   invoke(COMMAND.SHOW_TASKBAR_ICON, { visible });
+};
+
+/**
+ * 显示 Toast 窗口（粘贴成功提示）
+ */
+export const showToastWindow = async () => {
+  await invoke(COMMAND.SHOW_TOAST_WINDOW);
+};
+
+/**
+ * 隐藏 Toast 窗口
+ */
+export const hideToastWindow = async () => {
+  await invoke(COMMAND.HIDE_TOAST_WINDOW);
 };

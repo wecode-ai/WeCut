@@ -35,6 +35,12 @@ export const transferData: TransferData[] = [
       "preference.clipboard.content_settings.label.operation_button_option.notes",
   },
   {
+    icon: "i-lucide:send",
+    key: "send",
+    title:
+      "preference.clipboard.content_settings.label.operation_button_option.send",
+  },
+  {
     activeIcon: "i-iconamoon:star-fill",
     icon: "i-iconamoon:star",
     key: "star",

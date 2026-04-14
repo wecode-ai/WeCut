@@ -1,4 +1,5 @@
 import type { Platform } from "@tauri-apps/plugin-os";
+import type { DatabaseSchemaTag } from "./database";
 
 export type Theme = "auto" | "light" | "dark";
 
@@ -39,6 +40,13 @@ export interface GlobalStore {
       value: string;
     };
     pastePlain: string;
+    copyFilePath: string;
+    wegent?: {
+      aiChat?: string;
+      workQueue?: string;
+    };
+    // 兼容旧配置
+    send?: string;
   };
 
   // 只在当前系统环境使用
@@ -47,6 +55,10 @@ export interface GlobalStore {
     appName?: string;
     appVersion?: string;
     saveDataDir?: string;
+    // 系统环境变量控制的功能开关
+    features?: {
+      wegentChat?: boolean; // ECO_FEATURE_WEGENT_CHAT 环境变量
+    };
   };
 }
 
@@ -57,7 +69,8 @@ export type OperationButton =
   | "pastePlain"
   | "note"
   | "star"
-  | "delete";
+  | "delete"
+  | "send";
 
 export interface ClipboardStore {
   // 窗口设置
@@ -66,11 +79,18 @@ export interface ClipboardStore {
     position: "remember" | "follow" | "center";
     backTop: boolean;
     showAll: boolean;
+    rememberActiveId: boolean;
+    dockScale: number;
   };
 
   // 音效设置
   audio: {
     copy: boolean;
+  };
+
+  // 通知设置
+  notification: {
+    pasteSuccess: boolean;
   };
 
   // 搜索框设置
@@ -83,6 +103,7 @@ export interface ClipboardStore {
   // 剪贴板内容设置
   content: {
     autoPaste: "single" | "double";
+    activateAction: "copy" | "paste";
     copyPlain: boolean;
     pastePlain: boolean;
     operationButtons: OperationButton[];
@@ -97,5 +118,62 @@ export interface ClipboardStore {
     duration: number;
     unit: number;
     maxCount: number;
+  };
+
+  // AI 发送基础配置 (旧配置，向后兼容)
+  aiSend?: {
+    enabled: boolean;
+    serviceType: "aiChat" | "workQueue";
+    showInUI: boolean;
+  };
+
+  // AI Chat (OpenAI) 配置 (旧配置，向后兼容)
+  aiChatConfig?: {
+    baseUrl: string;
+    apiKey: string;
+    model: string;
+    customHeaders: Record<string, string>;
+  };
+
+  // Work Queue 配置 (旧配置，向后兼容)
+  workQueueConfig?: {
+    baseUrl: string;
+    apiToken: string;
+    queueName: string;
+    defaults: {
+      title: string;
+      note: string;
+    };
+  };
+
+  // Wegent 集成配置 (新配置)
+  wegent?: {
+    aiChat: {
+      enabled: boolean;
+      baseUrl: string;
+      apiKey: string;
+      model: string;
+      customHeaders: Record<string, string>;
+    };
+    workQueue: {
+      enabled: boolean;
+      baseUrl: string;
+      apiToken: string;
+      queueName: string;
+      defaults: {
+        title: string;
+        note: string;
+      };
+    };
+  };
+
+  // 标签系统
+  tags: DatabaseSchemaTag[];
+  activeTagId: string | null;
+
+  // UI 状态持久化
+  ui: {
+    /** 当前激活的标签ID，用于保持标签筛选状态 */
+    activeTagId?: string | null;
   };
 }

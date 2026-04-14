@@ -1,0 +1,6 @@
+[default]
+permissions = [
+  "allow-set-text-expansion-prefix",
+  "allow-set-text-expansions",
+  "allow-set-text-expansion-enabled",
+]

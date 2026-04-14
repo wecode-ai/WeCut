@@ -27,6 +27,7 @@
       "email": "信箱",
       "html": "HTML",
       "image": "圖片",
+      "input_title": "輸入標題",
       "link": "連結",
       "n_chars": "{{0}}個字元",
       "n_files": "{{0}}個檔案",
@@ -67,6 +68,18 @@
         "note": "備註"
       }
     },
+    "send_modal": {
+      "button": {
+        "cancel": "取消",
+        "direct_send": "直接發送"
+      },
+      "hints": {
+        "input_extra_message": "請輸入補充資訊（可選）"
+      },
+      "label": {
+        "send": "發送"
+      }
+    },
     "shortcut_key": {
       "hints": {
         "click": "點擊錄製快速鍵",
@@ -92,20 +105,50 @@
         "button": {
           "check_update": "檢查更新",
           "copy": "複製",
-          "feedback_issue": "迴響問題"
+          "feedback_issue": "迴響問題",
+          "open_log_dir": "打開日誌"
         },
         "hints": {
           "copy_success": "複製成功",
+          "open_log_dir": "在文件管理器中查看日誌文件",
           "software_info": "複製軟件資訊並提供給 Bug Issue"
         },
         "label": {
           "community": "社區交流",
+          "log_file": "日誌文件",
           "open_source_address": "開源地址",
           "software_info": "軟件資訊",
           "sponsor": "贊助我們",
           "version": "版本："
         },
         "title": "關於軟件"
+      }
+    },
+    "ai_send": {
+      "settings": {
+        "api_config_title": "API 配置",
+        "button": {
+          "configure_headers": "配置請求頭",
+          "confirm": "確定"
+        },
+        "hints": {
+          "api_key": "您的 API 金鑰",
+          "base_url": "OpenAI 兼容的 API 地址",
+          "custom_headers": "自定義 HTTP 請求頭（JSON 格式）",
+          "enable": "啟用後將顯示發送按鈕，可將剪貼簿內容發送到 AI 接口",
+          "model": "使用的模型名稱，如 gpt-4o"
+        },
+        "label": {
+          "api_key": "API 金鑰",
+          "base_url": "API 地址",
+          "custom_headers": "自定義請求頭",
+          "enable": "啟用 AI 發送",
+          "model": "模型"
+        },
+        "modal": {
+          "custom_headers_title": "自定義請求頭"
+        },
+        "title": "AI 發送設定"
       }
     },
     "clipboard": {
@@ -144,7 +187,8 @@
             "delete": "刪除",
             "favorite": "收藏",
             "notes": "備註",
-            "paste_plain": "貼上為純文本"
+            "paste_plain": "貼上為純文本",
+            "send": "發送"
           },
           "paste_as_plain": "粘貼為純文字",
           "show_original_content": "顯示原內容"
@@ -167,10 +211,16 @@
       },
       "window_settings": {
         "hints": {
-          "back_top": "啟動視窗時，滾動至頂部並選中首條"
+          "back_top": "啟動視窗時，滾動至頂部並選中首條",
+          "dock_scale": "調整 Dock 視窗的整體大小",
+          "remember_active_id": "關閉後重新打開 Dock 時，記住上次選中的條目位置"
         },
         "label": {
           "back_top": "啟動時回到頂部",
+          "dock_scale": "Dock 縮放",
+          "dock_scale_large": "大",
+          "dock_scale_normal": "正常",
+          "remember_active_id": "記住選中位置",
           "show_all": "啟動時切換至全部分組",
           "window_position": "視窗位置",
           "window_position_center": "螢幕中央",
@@ -249,11 +299,33 @@
     "menu": {
       "title": {
         "about": "關於",
+        "ai_send": "AI 發送",
         "backup": "資料備份",
         "clipboard": "剪貼簿",
         "general": "通用設定",
         "history": "歷史記錄",
+        "privacy": "隱私聲明",
         "shortcut": "快捷鍵"
+      }
+    },
+    "privacy": {
+      "data_collection": {
+        "description": "您的剪貼簿內容、設定偏好等所有數據均存儲在本地設備上，不會上傳到任何服務器",
+        "label": "無任何數據收集",
+        "title": "數據收集政策"
+      },
+      "open_source": {
+        "button": {
+          "visit": "訪問"
+        },
+        "description": "https://github.com/ecopaste/wecut",
+        "label": "開源共建",
+        "title": "歡迎貢獻"
+      },
+      "privacy_consideration": {
+        "description": "我們高度重視您的隱私安全，所有數據處理均在本地完成",
+        "label": "隱私性考慮",
+        "title": "隱私性考慮"
       }
     },
     "settings": {
@@ -325,18 +397,37 @@
       },
       "shortcut": {
         "hints": {
+          "copy_file_path": "啟動視窗時，複製選中條目的檔案路徑到剪貼簿",
           "paste_as_plain": "啟動視窗時，將選中的內容粘貼為純文字或路徑",
-          "quick_paste": "隱藏視窗時，使用數字鍵快速貼上前九項"
+          "quick_paste": "隱藏視窗時，使用數字鍵快速貼上前九項",
+          "send": "啟動視窗時，將選中的內容傳送到 AI 介面"
         },
         "label": {
+          "copy_file_path": "複製檔案路徑",
           "open_clipboard": "打開剪貼簿視窗",
           "open_settings": "打開偏好設定視窗",
           "paste_as_plain": "貼上為純文字",
-          "quick_paste": "快速貼上"
+          "quick_paste": "快速貼上",
+          "send": "傳送到 AI"
         },
         "title": "快捷鍵"
       }
     },
     "title": "偏好設定"
+  },
+  "tag": {
+    "color_label": "標籤顏色",
+    "create": "新建標籤",
+    "create_title": "新建標籤",
+    "default_favorite": "預設收藏",
+    "delete_confirm_desc": "刪除後該標籤下的記錄將不再關聯此標籤",
+    "delete_confirm_title": "確認刪除",
+    "edit_title": "編輯標籤",
+    "empty": "暫無標籤，點擊下方按鈕建立",
+    "favorite_title": "收藏",
+    "manage_tags": "管理標籤...",
+    "manager_title": "標籤管理",
+    "name_label": "標籤名稱",
+    "name_placeholder": "請輸入標籤名稱"
   }
 }

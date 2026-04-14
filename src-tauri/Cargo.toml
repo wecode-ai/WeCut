@@ -1,5 +1,5 @@
 [package]
-name = "EcoPaste"
+name = "WeCut"
 version = "0.6.0-beta.3"
 description = "一款开源的跨平台剪贴板管理工具"
 authors = []
@@ -21,6 +21,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { workspace = true, features = ["tray-icon", "protocol-asset", "macos-private-api", "image-ico"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+log.workspace = true
 tauri-plugin-single-instance = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
@@ -34,15 +35,22 @@ tauri-plugin-process = "2"
 tauri-plugin-macos-permissions = "2"
 tauri-plugin-locale = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-http = "2"
 tauri-plugin-prevent-default = "1"
 tauri-plugin-clipboard-x = "2"
+reqwest = { version = "0.12", features = ["multipart"] }
+urlencoding = "2"
+tokio = { version = "1", features = ["fs"] }
 tauri-plugin-fs-pro.workspace = true
 tauri-plugin-eco-window.workspace = true
 tauri-plugin-eco-paste.workspace = true
 tauri-plugin-eco-autostart.workspace = true
+tauri-plugin-eco-active-app.workspace = true
 
 [target."cfg(target_os = \"macos\")".dependencies]
 tauri-nspanel.workspace = true
+core-graphics = { version = "0.24", features = ["highsierra"] }
+core-foundation = "0.10"
 
 [features]
 cargo-clippy = []

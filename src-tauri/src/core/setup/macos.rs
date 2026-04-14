@@ -37,7 +37,7 @@ pub fn platform(
 
     panel.set_level(PanelLevel::Dock.value());
 
-    panel.set_style_mask(StyleMask::empty().resizable().nonactivating_panel().into());
+    panel.set_style_mask(StyleMask::empty().nonactivating_panel().into());
 
     panel.set_collection_behavior(
         CollectionBehavior::new()

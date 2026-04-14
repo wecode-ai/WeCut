@@ -11,6 +11,9 @@
     "core:window:allow-set-theme",
     "core:window:deny-internal-toggle-maximize",
     "core:window:allow-set-size",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "core:window:allow-close",
     "fs:read-all",
     "fs:write-all",
     {
@@ -39,6 +42,19 @@
         }
       ],
       "identifier": "opener:allow-open-path"
+    },
+    "http:default",
+    "http:allow-fetch",
+    {
+      "allow": [
+        {
+          "url": "https://*"
+        },
+        {
+          "url": "http://*"
+        }
+      ],
+      "identifier": "http:allow-fetch"
     },
     "clipboard-x:default",
     "eco-window:default",

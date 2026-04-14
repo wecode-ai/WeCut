@@ -2,11 +2,10 @@ import { emit } from "@tauri-apps/api/event";
 import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
 import { resolveResource } from "@tauri-apps/api/path";
 import { TrayIcon, type TrayIconOptions } from "@tauri-apps/api/tray";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { exit, relaunch } from "@tauri-apps/plugin-process";
 import { useBoolean, useUpdateEffect } from "ahooks";
 import { useTranslation } from "react-i18next";
-import { GITHUB_LINK, LISTEN_KEY } from "@/constants";
+import { LISTEN_KEY } from "@/constants";
 import { showWindow } from "@/plugins/window";
 import { globalStore } from "@/stores/global";
 import { isMac } from "@/utils/is";
@@ -69,7 +68,7 @@ export const useTray = () => {
         }
       },
       icon,
-      iconAsTemplate: true,
+      iconAsTemplate: false,
       id: TRAY_ID,
       menu,
       menuOnLeftClick: isMac,
@@ -96,18 +95,15 @@ export const useTray = () => {
           : t("component.tray.label.start_listening"),
       }),
       PredefinedMenuItem.new({ item: "Separator" }),
-      MenuItem.new({
-        action: () => {
-          showWindow();
-
-          emit(LISTEN_KEY.UPDATE_APP, true);
-        },
-        text: t("component.tray.label.check_update"),
-      }),
-      MenuItem.new({
-        action: () => openUrl(GITHUB_LINK),
-        text: t("component.tray.label.open_source_address"),
-      }),
+      // 暂时隐藏托盘菜单中的检查更新选项
+      // MenuItem.new({
+      //   action: () => {
+      //     showWindow();
+      //
+      //     emit(LISTEN_KEY.UPDATE_APP, true);
+      //   },
+      //   text: t("component.tray.label.check_update"),
+      // }),
       PredefinedMenuItem.new({ item: "Separator" }),
       MenuItem.new({
         enabled: false,

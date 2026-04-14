@@ -11,6 +11,19 @@ use std::thread;
 use tauri::{command, AppHandle, Runtime, WebviewWindow};
 use tauri_plugin_eco_window::{set_macos_panel, MacOSPanelStatus, MAIN_WINDOW_TITLE};
 
+// 使用 AppleScript 测试辅助功能权限
+pub fn is_accessibility_enabled() -> bool {
+    // 尝试使用 AppleScript 测试权限
+    let test_script =
+        r#"tell application "System Events" to return name of first application process"#;
+    let output = Command::new("osascript").args(["-e", test_script]).output();
+
+    match output {
+        Ok(result) => result.status.success(),
+        Err(_) => false,
+    }
+}
+
 static PREVIOUS_WINDOW: Mutex<Option<i32>> = Mutex::new(None);
 
 extern "C" fn application_did_activate(_self: &Object, _cmd: Sel, notification: id) {
@@ -79,15 +92,39 @@ pub fn get_previous_window() -> Option<i32> {
     return PREVIOUS_WINDOW.lock().unwrap().clone();
 }
 
+// 检查辅助功能权限命令
+#[command]
+pub async fn check_accessibility_permission() -> Result<bool, String> {
+    Ok(is_accessibility_enabled())
+}
+
 // 粘贴
 #[command]
-pub async fn paste<R: Runtime>(app_handle: AppHandle<R>, window: WebviewWindow<R>) {
+pub async fn paste<R: Runtime>(
+    app_handle: AppHandle<R>,
+    window: WebviewWindow<R>,
+) -> Result<(), String> {
+    // 先检查权限
+    if !is_accessibility_enabled() {
+        return Err("ACCESSIBILITY_DENIED".to_string());
+    }
+
     set_macos_panel(&app_handle, &window, MacOSPanelStatus::Resign);
 
     let script = r#"tell application "System Events" to keystroke "v" using command down"#;
 
-    Command::new("osascript")
+    let output = Command::new("osascript")
         .args(["-e", script])
         .output()
-        .expect("failed to execute process");
+        .map_err(|e| format!("Failed to execute paste command: {}", e))?;
+
+    if !output.status.success() {
+        let error_msg = String::from_utf8_lossy(&output.stderr);
+        if error_msg.contains("not allowed") || error_msg.contains("privilege") {
+            return Err("ACCESSIBILITY_DENIED".to_string());
+        }
+        return Err(format!("Paste failed: {}", error_msg));
+    }
+
+    Ok(())
 }

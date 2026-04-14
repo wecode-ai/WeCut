@@ -10,6 +10,8 @@ import { isDev } from "./is";
  */
 export function join(...paths: string[]) {
   const joinPaths = paths.map((path, index) => {
+    if (!path) return "";
+
     if (index === 0) {
       return path.replace(new RegExp(`${sep()}+$`), "");
     }

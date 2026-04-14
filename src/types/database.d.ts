@@ -15,7 +15,14 @@ export type DatabaseSchemaHistory<
   favorite: boolean;
   createTime: string;
   note?: string;
+  title?: string;
   subtype?: DatabaseSchemaHistorySubtype;
+  sourceAppName?: string;
+  sourceAppPath?: string;
+  sourceAppBundleId?: string;
+  sourceAppIcon?: string;
+  fileSize?: number;
+  fileMimeType?: string;
 };
 
 export type DatabaseSchemaGroupId = LiteralUnion<
@@ -29,7 +36,32 @@ export interface DatabaseSchemaGroup {
   createTime?: string;
 }
 
+export interface DatabaseSchemaTag {
+  id: string;
+  name: string;
+  color: string;
+  createTime: string;
+}
+
+export interface DatabaseSchemaHistoryTag {
+  historyId: string;
+  tagId: string;
+}
+
+export interface DatabaseSchemaTextExpansion {
+  id: string;
+  triggerWord: string;
+  content: string;
+  variables?: string;
+  sourceHistoryId?: string;
+  createTime: string;
+  updateTime: string;
+}
+
 export interface DatabaseSchema {
   history: DatabaseSchemaHistory;
   group: DatabaseSchemaGroup;
+  tag: DatabaseSchemaTag;
+  historyTag: DatabaseSchemaHistoryTag;
+  textExpansion: DatabaseSchemaTextExpansion;
 }

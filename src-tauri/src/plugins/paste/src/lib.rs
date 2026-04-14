@@ -15,6 +15,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 
             Ok(())
         })
-        .invoke_handler(generate_handler![commands::paste])
+        .invoke_handler(generate_handler![
+            commands::paste,
+            commands::check_accessibility_permission
+        ])
         .build()
 }

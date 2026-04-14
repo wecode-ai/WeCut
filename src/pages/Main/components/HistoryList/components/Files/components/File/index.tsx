@@ -14,6 +14,7 @@ import { isImage, isLinux } from "@/utils/is";
 interface FileProps {
   path: string;
   count: number;
+  nameOnly?: boolean;
 }
 
 interface State extends Partial<Metadata> {
@@ -21,7 +22,7 @@ interface State extends Partial<Metadata> {
 }
 
 const File: FC<FileProps> = (props) => {
-  const { path, count } = props;
+  const { path, count, nameOnly } = props;
 
   const state = useReactive<State>({});
 
@@ -31,7 +32,7 @@ const File: FC<FileProps> = (props) => {
 
       Object.assign(state, data);
 
-      if (isLinux) return;
+      if (nameOnly || isLinux) return;
 
       state.icon = await icon(path, { size: 256 });
     } catch {
@@ -40,11 +41,30 @@ const File: FC<FileProps> = (props) => {
   }, [path]);
 
   const renderContent = () => {
-    if (state.isExist && count === 1 && isImage(path)) {
+    if (!nameOnly && state.isExist && count === 1 && isImage(path)) {
       return <LocalImage className="max-h-21.5" src={path} />;
     }
 
     const height = 100 / Math.min(count, 3);
+
+    if (nameOnly) {
+      return (
+        <div
+          className={clsx({ "py-0.5": count > 1 })}
+          style={{ height: `${height}%` }}
+        >
+          <Flex align="center" className="h-full">
+            <span
+              className={clsx("truncate", {
+                "text-danger line-through": !state.isExist,
+              })}
+            >
+              {state.fullName}
+            </span>
+          </Flex>
+        </div>
+      );
+    }
 
     return (
       <div

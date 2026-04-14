@@ -27,6 +27,7 @@
       "email": "メール",
       "html": "HTML",
       "image": "画像",
+      "input_title": "タイトルを入力",
       "link": "ウェブリンク",
       "n_chars": "{{0}} 文字",
       "n_files": "{{0}} ファイル（フォルダ）",
@@ -67,6 +68,18 @@
         "note": "備考"
       }
     },
+    "send_modal": {
+      "button": {
+        "cancel": "キャンセル",
+        "direct_send": "直接送信"
+      },
+      "hints": {
+        "input_extra_message": "追加情報を入力してください（任意）"
+      },
+      "label": {
+        "send": "送信"
+      }
+    },
     "shortcut_key": {
       "hints": {
         "click": "クリックして入力",
@@ -92,20 +105,50 @@
         "button": {
           "check_update": "アップデートの確認",
           "copy": "複製します",
-          "feedback_issue": "フィードバックの問題"
+          "feedback_issue": "フィードバックの問題",
+          "open_log_dir": "ログを開く"
         },
         "hints": {
           "copy_success": "コピー成功",
+          "open_log_dir": "ファイルマネージャーでログファイルを表示",
           "software_info": "ソフトウェアの情報をコピーしてバグ問題に提供すること"
         },
         "label": {
           "community": "コミュニティの交流です",
+          "log_file": "ログファイル",
           "open_source_address": "オープンソースアドレス",
           "software_info": "ソフトウェア情報",
           "sponsor": "スポンサー",
           "version": "バージョン: "
         },
         "title": "ソフトウェアについて"
+      }
+    },
+    "ai_send": {
+      "settings": {
+        "api_config_title": "API設定",
+        "button": {
+          "configure_headers": "ヘッダーを設定",
+          "confirm": "確認"
+        },
+        "hints": {
+          "api_key": "あなたのAPIキー",
+          "base_url": "OpenAI互換のAPIアドレス",
+          "custom_headers": "カスタムHTTPヘッダー（JSON形式）",
+          "enable": "有効にすると送信ボタンが表示され、クリップボードの内容をAI APIに送信できます",
+          "model": "モデル名、例: gpt-4o"
+        },
+        "label": {
+          "api_key": "APIキー",
+          "base_url": "APIアドレス",
+          "custom_headers": "カスタムヘッダー",
+          "enable": "AI送信を有効化",
+          "model": "モデル"
+        },
+        "modal": {
+          "custom_headers_title": "カスタムヘッダー"
+        },
+        "title": "AI送信設定"
       }
     },
     "clipboard": {
@@ -144,7 +187,8 @@
             "delete": "削除",
             "favorite": "お気に入り",
             "notes": "メモ",
-            "paste_plain": "プレーンテキストとして貼り付け"
+            "paste_plain": "プレーンテキストとして貼り付け",
+            "send": "送信"
           },
           "paste_as_plain": "プレーンテキストとして貼り付ける",
           "show_original_content": "元の内容を表示します"
@@ -167,10 +211,16 @@
       },
       "window_settings": {
         "hints": {
-          "back_top": "ウィンドウがアクティブになったら、一番上までスクロールし、最初のバーを選択する。"
+          "back_top": "ウィンドウがアクティブになったら、一番上までスクロールし、最初のバーを選択する。",
+          "dock_scale": "Dockウィンドウの全体サイズを調整",
+          "remember_active_id": "Dockを閉じて再度開いた時、最後に選択した項目の位置を記憶する"
         },
         "label": {
           "back_top": "トップページに戻る",
+          "dock_scale": "Dock スケール",
+          "dock_scale_large": "大",
+          "dock_scale_normal": "標準",
+          "remember_active_id": "選択位置を記憶",
           "show_all": "起動時に全グループに切り替わる",
           "window_position": "クリップボード位置",
           "window_position_center": "スクリーンセンター",
@@ -249,11 +299,33 @@
     "menu": {
       "title": {
         "about": "について",
+        "ai_send": "AI送信",
         "backup": "バックアップ",
         "clipboard": "クリップボード",
         "general": "共通設定",
         "history": "履歴",
+        "privacy": "プライバシー",
         "shortcut": "ショートカットキー"
+      }
+    },
+    "privacy": {
+      "data_collection": {
+        "description": "クリップボードの内容、設定設定などすべてのデータはローカルデバイスに保存され、サーバーにアップロードされることはありません",
+        "label": "データ収集なし",
+        "title": "データ収集ポリシー"
+      },
+      "open_source": {
+        "button": {
+          "visit": "アクセス"
+        },
+        "description": "https://github.com/ecopaste/wecut",
+        "label": "オープンソース",
+        "title": "コントリビューション歓迎"
+      },
+      "privacy_consideration": {
+        "description": "当社はお客様のプライバシーとセキュリティを非常に重視しており、すべてのデータ処理はローカルで行われます",
+        "label": "プライバシー考慮",
+        "title": "プライバシー考慮"
       }
     },
     "settings": {
@@ -325,18 +397,37 @@
       },
       "shortcut": {
         "hints": {
+          "copy_file_path": "ウィンドウがアクティブな時、選択した項目のファイルパスをクリップボードにコピー",
           "paste_as_plain": "選択範囲をプレーンテキスト、パスとして貼り付けます。",
-          "quick_paste": "ウィンドウを隠す際、数字キーの組み合わせで最初の9項目を素早く貼り付ける"
+          "quick_paste": "ウィンドウを隠す際、数字キーの組み合わせで最初の9項目を素早く貼り付ける",
+          "send": "ウィンドウがアクティブな時、選択した内容をAI APIに送信"
         },
         "label": {
+          "copy_file_path": "ファイルパスをコピー",
           "open_clipboard": "クリップボードを開く",
           "open_settings": "クリップボード設定を開く",
           "paste_as_plain": "プレーンテキストとして貼り付け",
-          "quick_paste": "クイックペースト"
+          "quick_paste": "クイックペースト",
+          "send": "AIに送信"
         },
         "title": "ショートカットキー"
       }
     },
     "title": "環境設定"
+  },
+  "tag": {
+    "color_label": "タグの色",
+    "create": "新規タグ",
+    "create_title": "新規タグ",
+    "default_favorite": "デフォルトお気に入り",
+    "delete_confirm_desc": "削除するとこのタグに関連付けられた記録は解除されます",
+    "delete_confirm_title": "削除の確認",
+    "edit_title": "タグを編集",
+    "empty": "タグがありません。下のボタンをクリックして作成してください",
+    "favorite_title": "お気に入り",
+    "manage_tags": "タグを管理...",
+    "manager_title": "タグ管理",
+    "name_label": "タグ名",
+    "name_placeholder": "タグ名を入力してください"
   }
 }

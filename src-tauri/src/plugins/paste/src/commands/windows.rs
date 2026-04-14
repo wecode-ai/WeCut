@@ -99,17 +99,32 @@ fn focus_previous_window() {
     }
 }
 
+// 检查辅助功能权限（Windows 不需要特殊权限，直接返回 true）
+#[command]
+pub async fn check_accessibility_permission() -> Result<bool, String> {
+    Ok(true)
+}
+
 // 粘贴
 #[command]
-pub async fn paste() {
-    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+pub async fn paste() -> Result<(), String> {
+    let mut enigo =
+        Enigo::new(&Settings::default()).map_err(|e| format!("Failed to create Enigo: {}", e))?;
 
     focus_previous_window();
 
     wait(100);
 
-    enigo.key(Key::Shift, Press).unwrap();
+    enigo
+        .key(Key::Shift, Press)
+        .map_err(|e| format!("Failed to press Shift: {}", e))?;
     // insert 的微软虚拟键码：https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-    enigo.key(Key::Other(0x2D), Click).unwrap();
-    enigo.key(Key::Shift, Release).unwrap();
+    enigo
+        .key(Key::Other(0x2D), Click)
+        .map_err(|e| format!("Failed to click Insert: {}", e))?;
+    enigo
+        .key(Key::Shift, Release)
+        .map_err(|e| format!("Failed to release Shift: {}", e))?;
+
+    Ok(())
 }

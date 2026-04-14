@@ -1,5 +1,5 @@
 {
-	"name": "eco-paste",
+	"name": "we-cut",
 	"description": "一款开源的跨平台剪贴板管理工具",
 	"author": {
 		"name": "ayangweb",
@@ -15,6 +15,7 @@
 		"build:vite": "vite build",
 		"tauri": "tauri",
 		"lint": "biome check --write src",
+		"test": "tsx --test src/**/*.test.ts",
 		"preinstall": "npx only-allow pnpm",
 		"prepare": "simple-git-hooks",
 		"release": "release-it",
@@ -29,6 +30,7 @@
 		"@tauri-apps/plugin-dialog": "^2.4.0",
 		"@tauri-apps/plugin-fs": "^2.4.2",
 		"@tauri-apps/plugin-global-shortcut": "^2.3.0",
+		"@tauri-apps/plugin-http": "^2.5.8",
 		"@tauri-apps/plugin-log": "^2.7.0",
 		"@tauri-apps/plugin-opener": "^2.5.0",
 		"@tauri-apps/plugin-os": "^2.3.1",

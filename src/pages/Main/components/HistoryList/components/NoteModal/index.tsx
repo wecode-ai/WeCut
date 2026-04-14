@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useShortcutContext } from "@/contexts/ShortcutContext";
 import { updateHistory } from "@/database/history";
 import { MainContext } from "@/pages/Main";
 import { clipboardStore } from "@/stores/clipboard";
@@ -28,6 +29,9 @@ const NoteModal = forwardRef<NoteModalRef>((_, ref) => {
   const [item, setItem] = useState<DatabaseSchemaHistory>();
   const [form] = Form.useForm<FormFields>();
   const inputRef = useRef<InputRef>(null);
+
+  // Push modal context when open
+  useShortcutContext(open ? "modal" : "normal");
 
   useImperativeHandle(ref, () => ({
     open: (id) => {

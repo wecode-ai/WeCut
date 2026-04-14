@@ -20,14 +20,21 @@ const MacosPermissions = () => {
   });
 
   useMount(() => {
-    checkAccessibility();
-
-    checkFullDiskAccess();
+    // 只检查权限状态，不自动请求
+    refreshPermissions();
   });
 
-  const checkAccessibility = async () => {
+  // 刷新权限状态（只检查，不请求）
+  const refreshPermissions = async () => {
+    state.accessibilityPermission = await checkAccessibilityPermission();
+    state.fullDiskAccessPermission = await checkFullDiskAccessPermission();
+  };
+
+  // 请求辅助功能权限（用户主动点击授权）
+  const handleRequestAccessibility = async () => {
     await requestAccessibilityPermission();
 
+    // 轮询检查权限是否已授予
     const check = async () => {
       state.accessibilityPermission = await checkAccessibilityPermission();
 
@@ -39,11 +46,8 @@ const MacosPermissions = () => {
     check();
   };
 
-  const checkFullDiskAccess = async () => {
-    state.fullDiskAccessPermission = await checkFullDiskAccessPermission();
-
-    if (state.fullDiskAccessPermission) return;
-
+  // 请求完全磁盘访问权限（用户主动点击授权）
+  const handleRequestFullDiskAccess = async () => {
     const confirmed = await confirm(
       t(
         "preference.settings.permission_settings.hints.confirm_full_disk_access",
@@ -64,9 +68,23 @@ const MacosPermissions = () => {
     if (!confirmed) return;
 
     requestFullDiskAccessPermission();
+
+    // 轮询检查权限是否已授予
+    const check = async () => {
+      state.fullDiskAccessPermission = await checkFullDiskAccessPermission();
+
+      if (state.fullDiskAccessPermission) return;
+
+      setTimeout(check, 1000);
+    };
+
+    check();
   };
 
-  const renderStatus = (authorized: boolean, event: () => Promise<void>) => {
+  const renderStatus = (
+    authorized: boolean,
+    onAuthorize: () => Promise<void>,
+  ) => {
     return (
       <div className="children:(inline-flex items-center gap-1 font-bold)">
         {authorized ? (
@@ -75,7 +93,13 @@ const MacosPermissions = () => {
             {t("preference.settings.permission_settings.label.authorized")}
           </div>
         ) : (
-          <div className="cursor-pointer text-danger" onMouseDown={event}>
+          <div
+            className="cursor-pointer text-danger"
+            onMouseDown={onAuthorize}
+            title={t(
+              "preference.settings.permission_settings.button.authorize",
+            )}
+          >
             <UnoIcon name="i-lucide:circle-arrow-right" />
             {t("preference.settings.permission_settings.button.authorize")}
           </div>
@@ -94,7 +118,10 @@ const MacosPermissions = () => {
           "preference.settings.permission_settings.label.accessibility_permissions",
         )}
       >
-        {renderStatus(state.accessibilityPermission, checkAccessibility)}
+        {renderStatus(
+          state.accessibilityPermission,
+          handleRequestAccessibility,
+        )}
       </ProListItem>
 
       <ProListItem
@@ -105,7 +132,10 @@ const MacosPermissions = () => {
           "preference.settings.permission_settings.label.full_disk_access_permissions",
         )}
       >
-        {renderStatus(state.fullDiskAccessPermission, checkFullDiskAccess)}
+        {renderStatus(
+          state.fullDiskAccessPermission,
+          handleRequestFullDiskAccess,
+        )}
       </ProListItem>
     </ProList>
   );

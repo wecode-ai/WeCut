@@ -10,7 +10,7 @@ import UnoIcon from "@/components/UnoIcon";
 import { LISTEN_KEY } from "@/constants";
 import { useContextMenu } from "@/hooks/useContextMenu";
 import { MainContext } from "@/pages/Main";
-import { pasteToClipboard } from "@/plugins/clipboard";
+import { runActivateAction } from "@/plugins/clipboard";
 import { clipboardStore } from "@/stores/clipboard";
 import type { DatabaseSchemaHistory } from "@/types/database";
 import Files from "../Files";
@@ -24,12 +24,13 @@ export interface ItemProps {
   data: DatabaseSchemaHistory;
   deleteModal: HookAPI;
   handleNote: () => void;
+  handleSend: (serviceType?: "aiChat" | "workQueue") => void;
 }
 
 const Item: FC<ItemProps> = (props) => {
-  const { index, data, handleNote } = props;
+  const { index, data, handleNote, handleSend } = props;
   const { id, type, note, value } = data;
-  const { rootState } = useContext(MainContext);
+  const { rootState, handlePasteResult } = useContext(MainContext);
   const { content } = useSnapshot(clipboardStore);
 
   const handlePreview = () => {
@@ -52,7 +53,7 @@ const Item: FC<ItemProps> = (props) => {
     rootState.activeId = rootState.list[index - 1].id;
   };
 
-  rootState.eventBus?.useSubscription((payload) => {
+  rootState.eventBus?.useSubscription(async (payload) => {
     if (payload.id !== id) return;
 
     const { handleDelete, handleFavorite } = rest;
@@ -60,8 +61,11 @@ const Item: FC<ItemProps> = (props) => {
     switch (payload.action) {
       case LISTEN_KEY.CLIPBOARD_ITEM_PREVIEW:
         return handlePreview();
-      case LISTEN_KEY.CLIPBOARD_ITEM_PASTE:
-        return pasteToClipboard(data);
+      case LISTEN_KEY.CLIPBOARD_ITEM_PASTE: {
+        const result = await runActivateAction(data);
+        handlePasteResult?.(result);
+        return;
+      }
       case LISTEN_KEY.CLIPBOARD_ITEM_DELETE:
         return handleDelete();
       case LISTEN_KEY.CLIPBOARD_ITEM_SELECT_PREV:
@@ -76,14 +80,16 @@ const Item: FC<ItemProps> = (props) => {
   const { handleContextMenu, ...rest } = useContextMenu({
     ...props,
     handleNext,
+    handleSend,
   });
 
-  const handleClick = (type: typeof content.autoPaste) => {
+  const handleClick = async (type: typeof content.autoPaste) => {
     rootState.activeId = id;
 
     if (content.autoPaste !== type) return;
 
-    pasteToClipboard(data);
+    const result = await runActivateAction(data);
+    handlePasteResult?.(result);
   };
 
   const renderContent = () => {
@@ -115,7 +121,12 @@ const Item: FC<ItemProps> = (props) => {
       onDoubleClick={() => handleClick("double")}
       vertical
     >
-      <Header {...rest} data={data} handleNote={handleNote} />
+      <Header
+        {...rest}
+        data={data}
+        handleNote={handleNote}
+        handleSend={handleSend}
+      />
 
       <div className="relative flex-1 select-auto overflow-hidden break-words children:transition">
         <div

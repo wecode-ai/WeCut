@@ -97,13 +97,18 @@ export const isColor = (value: string) => {
 };
 
 /**
- * 是否为图片
+ * 是否为图片（通过路径扩展名判断）
  */
 export const isImage = (value: string) => {
   const regex = /\.(jpe?g|png|webp|avif|gif|svg|bmp|ico|tiff?|heic|apng)$/i;
 
   return regex.test(value);
 };
+
+/**
+ * isImage 的别名，语义更明确
+ */
+export const isImagePath = isImage;
 
 /**
  * 是否为空白字符串

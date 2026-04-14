@@ -21,10 +21,10 @@
         "height": 600,
         "label": "main",
         "maximizable": false,
-        "minHeight": 600,
+        "minHeight": 280,
         "minWidth": 360,
         "skipTaskbar": true,
-        "title": "EcoPaste",
+        "title": "WeCut",
         "transparent": true,
         "url": "index.html/#/",
         "visible": false,
@@ -50,6 +50,39 @@
           "effects": ["sidebar"],
           "state": "active"
         }
+      },
+      {
+        "alwaysOnTop": true,
+        "decorations": false,
+        "focus": false,
+        "height": 200,
+        "label": "toast",
+        "resizable": false,
+        "skipTaskbar": true,
+        "transparent": true,
+        "url": "index.html/#/toast",
+        "visible": false,
+        "width": 200,
+        "x": null,
+        "y": null
+      },
+      {
+        "alwaysOnTop": true,
+        "center": true,
+        "decorations": false,
+        "height": 320,
+        "label": "send-modal",
+        "maxHeight": 600,
+        "maxWidth": 700,
+        "minHeight": 280,
+        "minWidth": 480,
+        "resizable": true,
+        "skipTaskbar": true,
+        "title": "发送消息",
+        "transparent": true,
+        "url": "index.html/#/send-modal",
+        "visible": false,
+        "width": 520
       }
     ]
   },
@@ -70,20 +103,20 @@
       "icons/icon.ico"
     ],
     "resources": ["assets/tray.ico"],
-    "shortDescription": "EcoPaste",
+    "shortDescription": "WeCut",
     "targets": ["nsis", "dmg", "app", "appimage", "deb", "rpm"]
   },
-  "identifier": "com.ayangweb.EcoPaste",
-  "mainBinaryName": "EcoPaste",
+  "identifier": "com.ayangweb.WeCut",
+  "mainBinaryName": "WeCut",
   "plugins": {
     "fs": {
       "requireLiteralLeadingDot": false
     },
     "updater": {
-      "endpoints": ["https://api.ecopaste.cn/update"],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDcwNEIyQkUwRjNEMTg4NgpSV1NHR0QwUHZySUVCeXFRQzZ4aEpNRWdFdThVQ2I4b2dSQktRcmNtV1dYTFJJV1h2VmVVZXBWSgo="
+      "endpoints": ["https://wecutplat.ai"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ1MEEzMUZGQzg3NzM1QTUKUldTbE5YZkkvekVLMWFZRUlSWEdRR1huT2tzS01TTW50ekRZM2hpMTlvTGhkMmdGcGlCSjBkUkIK"
     }
   },
-  "productName": "EcoPaste",
+  "productName": "WeCut",
   "version": "../package.json"
 }

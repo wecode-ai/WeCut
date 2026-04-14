@@ -20,10 +20,14 @@ import { raf } from "@/utils/bom";
 import { isMac } from "@/utils/is";
 import { saveStore } from "@/utils/store";
 import About from "./components/About";
+import AiSend from "./components/AiSend";
 import Clipboard from "./components/Clipboard";
 import General from "./components/General";
 import History from "./components/History";
+import Privacy from "./components/Privacy";
 import Shortcut from "./components/Shortcut";
+import TagManager from "./components/TagManager";
+import TextExpansion from "./components/TextExpansion";
 
 const Preference = () => {
   const { t } = useTranslation();
@@ -60,7 +64,7 @@ const Preference = () => {
   };
 
   const menuItems = useCreation(() => {
-    return [
+    const items = [
       {
         content: <Clipboard />,
         icon: "i-lucide:clipboard-list",
@@ -85,6 +89,21 @@ const Preference = () => {
         key: "shortcut",
         label: t("preference.menu.title.shortcut"),
       },
+    ];
+
+    items.push(
+      {
+        content: <TagManager />,
+        icon: "i-lucide:tag",
+        key: "tag",
+        label: t("preference.menu.title.tag", "标签管理"),
+      },
+      {
+        content: <TextExpansion />,
+        icon: "i-lucide:text-cursor-input",
+        key: "textExpansion",
+        label: t("preference.text_expansion.title"),
+      },
       // {
       //   content: <Backup />,
       //   icon: "i-lucide:database-backup",
@@ -92,12 +111,26 @@ const Preference = () => {
       //   label: t("preference.menu.title.backup"),
       // },
       {
+        content: <AiSend />,
+        icon: "i-lucide:send",
+        key: "wegent",
+        label: t("preference.menu.title.wegent", "Wegent集成"),
+      },
+      {
+        content: <Privacy />,
+        icon: "i-lucide:shield",
+        key: "privacy",
+        label: t("preference.menu.title.privacy"),
+      },
+      {
         content: <About />,
         icon: "i-lucide:info",
         key: "about",
         label: t("preference.menu.title.about"),
       },
-    ];
+    );
+
+    return items;
   }, [appearance.language]);
 
   const handleMenuClick = (key: string) => {
@@ -111,9 +144,11 @@ const Preference = () => {
   return (
     <Flex className="h-screen">
       <Flex
-        className={clsx("h-full w-50 p-3", [isMac ? "pt-8" : "bg-color-1"])}
+        className={clsx("h-full w-50 overflow-y-auto p-2", [
+          isMac ? "pt-8" : "bg-color-1",
+        ])}
         data-tauri-drag-region
-        gap="small"
+        gap={6}
         vertical
       >
         {menuItems.map((item) => {
@@ -123,7 +158,7 @@ const Preference = () => {
             <Flex
               align="center"
               className={clsx(
-                "cursor-pointer rounded-lg p-3 p-r-0 text-color-2 transition hover:bg-color-4",
+                "cursor-pointer rounded-lg px-3 py-2 text-color-2 transition hover:bg-color-4",
                 {
                   "bg-primary! text-white!": activeKey === key,
                 },
@@ -132,9 +167,9 @@ const Preference = () => {
               key={key}
               onClick={() => handleMenuClick(key)}
             >
-              <UnoIcon name={icon} size={20} />
+              <UnoIcon name={icon} size={18} />
 
-              <span className="font-bold">{label}</span>
+              <span className="font-bold text-sm">{label}</span>
             </Flex>
           );
         })}

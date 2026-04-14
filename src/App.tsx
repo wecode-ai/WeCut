@@ -8,14 +8,21 @@ import { isString } from "es-toolkit";
 import { RouterProvider } from "react-router-dom";
 import { useSnapshot } from "valtio";
 import { LISTEN_KEY, PRESET_SHORTCUT } from "./constants";
+import { ShortcutProvider } from "./contexts/ShortcutContext";
 import { destroyDatabase } from "./database";
 import { useImmediateKey } from "./hooks/useImmediateKey";
 import { useTauriListen } from "./hooks/useTauriListen";
 import { useWindowState } from "./hooks/useWindowState";
 import { getAntdLocale, i18n } from "./locales";
-import { hideWindow, showWindow } from "./plugins/window";
+import {
+  applyMainWindowLayout,
+  hideWindow,
+  showWindow,
+} from "./plugins/window";
 import { router } from "./router";
+import { tagActions } from "./stores/clipboard";
 import { globalStore } from "./stores/global";
+import { textExpansionActions } from "./stores/textExpansion";
 import { generateColorVars } from "./utils/color";
 import { isURL } from "./utils/is";
 import { restoreStore } from "./utils/store";
@@ -28,9 +35,14 @@ const App = () => {
   const [ready, { toggle }] = useBoolean();
 
   useMount(async () => {
-    await restoreState();
-
     await restoreStore();
+
+    // 初始化加载标签和文本扩展数据（在 restoreStore 完成后）
+    await tagActions.loadTags();
+    await textExpansionActions.loadExpansions();
+
+    await restoreState();
+    await applyMainWindowLayout();
 
     toggle();
 
@@ -90,16 +102,18 @@ const App = () => {
   });
 
   return (
-    <ConfigProvider
-      locale={getAntdLocale(appearance.language)}
-      theme={{
-        algorithm: appearance.isDark ? darkAlgorithm : defaultAlgorithm,
-      }}
-    >
-      <HappyProvider>
-        {ready && <RouterProvider router={router} />}
-      </HappyProvider>
-    </ConfigProvider>
+    <ShortcutProvider>
+      <ConfigProvider
+        locale={getAntdLocale(appearance.language)}
+        theme={{
+          algorithm: appearance.isDark ? darkAlgorithm : defaultAlgorithm,
+        }}
+      >
+        <HappyProvider>
+          {ready && <RouterProvider router={router} />}
+        </HappyProvider>
+      </ConfigProvider>
+    </ShortcutProvider>
   );
 };
 

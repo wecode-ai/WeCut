@@ -1,0 +1,108 @@
+.paste-toast-container {
+  position: fixed;
+  left: 50%;
+  bottom: 120px;
+  transform: translateX(-50%);
+  z-index: 9999;
+  animation: paste-toast-enter 0.3s ease-out;
+
+  &.paste-toast-exiting {
+    animation: paste-toast-exit 0.3s ease-in forwards;
+  }
+}
+
+.paste-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 12px 36px rgba(15, 23, 42, 0.08),
+    0 4px 12px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.paste-toast-message {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  letter-spacing: 0.02em;
+}
+
+.paste-toast-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 50%;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s ease;
+  padding: 0;
+  margin: 0;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #334155;
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+@keyframes paste-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes paste-toast-exit {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.95);
+  }
+}
+
+// 深色模式适配
+@media (prefers-color-scheme: dark) {
+  .paste-toast-content {
+    background: rgba(30, 41, 59, 0.72);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 12px 36px rgba(0, 0, 0, 0.24),
+      0 4px 12px rgba(0, 0, 0, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .paste-toast-message {
+    color: #f1f5f9;
+  }
+
+  .paste-toast-close {
+    background: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #e2e8f0;
+    }
+  }
+}

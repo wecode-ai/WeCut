@@ -1,8 +1,8 @@
 import { isMac } from "@/utils/is";
 
-export const WEBSITE_LINK = "https://www.ecopaste.cn";
+export const WEBSITE_LINK = "https://www.wecut.cn";
 
-export const GITHUB_LINK = "https://github.com/EcoPasteHub/EcoPaste";
+export const GITHUB_LINK = "https://github.com/WeCutHub/WeCut";
 
 export const GITHUB_ISSUES_LINK = `${GITHUB_LINK}/issues`;
 
@@ -11,6 +11,7 @@ export const UPDATE_MESSAGE_KEY = "app-update-message";
 export const WINDOW_LABEL = {
   MAIN: "main",
   PREFERENCE: "preference",
+  SEND_MODAL: "send-modal",
 } as const;
 
 export const LANGUAGE = {
@@ -30,6 +31,8 @@ export const LISTEN_KEY = {
   CLIPBOARD_ITEM_SELECT_PREV: "clipboard-item-select-prev",
   CLOSE_DATABASE: "close-database",
   REFRESH_CLIPBOARD_LIST: "refresh-clipboard-list",
+  SEND_MODAL_DATA: "send-modal-data",
+  SEND_MODAL_SEND: "send-modal-send",
   SHOW_WINDOW: "show-window",
   STORE_CHANGED: "store-changed",
   TOGGLE_LISTEN_CLIPBOARD: "toggle-listen-clipboard",

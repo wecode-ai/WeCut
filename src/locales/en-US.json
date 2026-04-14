@@ -27,6 +27,7 @@
       "email": "Email",
       "html": "HTML",
       "image": "Image",
+      "input_title": "Enter title",
       "link": "Link",
       "n_chars": "{{0}} Character(s)",
       "n_files": "{{0}} File(s)",
@@ -41,6 +42,12 @@
         "text": "Text"
       }
     }
+  },
+  "common": {
+    "add_success": "Added successfully",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "edit_success": "Updated successfully"
   },
   "component": {
     "app_update": {
@@ -67,6 +74,69 @@
         "note": "Note"
       }
     },
+    "send_modal": {
+      "action": {
+        "open_settings": "Open Settings"
+      },
+      "button": {
+        "cancel": "Cancel",
+        "direct_send": "Send Directly",
+        "send": "Send"
+      },
+      "error": {
+        "ai_chat_not_configured": "AI Chat API is not configured. Please configure API Key and Base URL first.",
+        "config_required": "Configuration Required",
+        "item_not_found": "Content to send not found",
+        "title": "Send Failed",
+        "unknown": "Unknown Error",
+        "unsupported_type": "Multiple files or non-image files are not supported",
+        "work_queue_not_configured": "Work Queue is not configured. Please configure API Token, Base URL and Queue Name first."
+      },
+      "hints": {
+        "input_extra_message": "Please enter additional information (optional)"
+      },
+      "label": {
+        "send": "Send"
+      },
+      "success": {
+        "ai_chat_sent": "Message successfully sent to AI Chat",
+        "title": "Send Success",
+        "work_queue_sent": "Message successfully sent to Work Queue"
+      },
+      "title": {
+        "ai_chat": "Send to AI Chat",
+        "work_queue": "Send to Work Queue"
+      },
+      "work_queue": {
+        "advanced_options": "Advanced Options",
+        "label": {
+          "content": "Content",
+          "note": "Note",
+          "priority": "Priority",
+          "sender_display_name": "Sender Display Name",
+          "sender_external_id": "Sender External ID",
+          "source_name": "Source Name",
+          "source_type": "Source Type",
+          "title": "Title"
+        },
+        "placeholder": {
+          "content": "Message content",
+          "display_name": "Display name",
+          "external_id": "External ID",
+          "optional": "Optional",
+          "source_name": "Name",
+          "source_type": "Type"
+        },
+        "priority": {
+          "high": "High",
+          "low": "Low",
+          "normal": "Normal"
+        },
+        "validation": {
+          "content_required": "Please enter content"
+        }
+      }
+    },
     "shortcut_key": {
       "hints": {
         "click": "Click to record",
@@ -86,26 +156,108 @@
       }
     }
   },
+  "context_menu": {
+    "set_as_expansion": "Set as Text Expansion"
+  },
   "preference": {
     "about": {
       "about_software": {
         "button": {
           "check_update": "Check Update",
           "copy": "Copy",
-          "feedback_issue": "Feedback Issue"
+          "feedback_issue": "Feedback Issue",
+          "open_log_dir": "Open Logs"
         },
         "hints": {
           "copy_success": "Copy Success",
+          "open_log_dir": "View log files in file manager",
           "software_info": "Copying software information and providing it to Bug Issues"
         },
         "label": {
           "community": "Community",
+          "log_file": "Log Files",
           "open_source_address": "Open Source Address",
           "software_info": "Software Information",
           "sponsor": "Sponsor",
           "version": "Version: "
         },
         "title": "About Software"
+      }
+    },
+    "ai_send": {
+      "ai_chat": {
+        "config_title": "AI Chat Configuration",
+        "hints": {
+          "api_key": "API access key",
+          "base_url": "Base URL for OpenAI-compatible API",
+          "custom_headers": "Add custom HTTP Headers",
+          "model": "Model name to use"
+        },
+        "label": {
+          "api_key": "API Key",
+          "base_url": "Base URL",
+          "custom_headers": "Custom Headers",
+          "model": "Model"
+        }
+      },
+      "button": {
+        "apply_api_key": "Apply for API Key",
+        "configure_headers": "Configure Headers",
+        "confirm": "Confirm"
+      },
+      "modal": {
+        "custom_headers_title": "Custom Headers"
+      },
+      "service_type": {
+        "ai_chat": "AI Chat (OpenAI format)",
+        "work_queue": "Work Queue (Task Queue)"
+      },
+      "settings": {
+        "hints": {
+          "enable": "Enable to send clipboard content to AI service via shortcut"
+        },
+        "label": {
+          "enable": "Enable AI Send",
+          "service_type": "Select Service"
+        },
+        "service_type_title": "Service Type",
+        "title": "AI Send"
+      },
+      "work_queue": {
+        "config_title": "Work Queue Configuration",
+        "defaults_title": "Default Send Configuration",
+        "hints": {
+          "api_token": "API access token",
+          "base_url": "Base URL for Work Queue API",
+          "default_note": "Default note for sent messages",
+          "default_priority": "Default priority for messages",
+          "default_title": "Default title for sent messages",
+          "queue_name": "Message queue name",
+          "sender": "Message sender information",
+          "source": "Message source information"
+        },
+        "label": {
+          "api_token": "API Token",
+          "base_url": "Base URL",
+          "default_note": "Default Note",
+          "default_priority": "Default Priority",
+          "default_title": "Default Title",
+          "queue_name": "Queue Name",
+          "sender": "Sender",
+          "source": "Source"
+        },
+        "placeholder": {
+          "display_name": "Display name, e.g., CRM System",
+          "external_id": "External ID, e.g., crm-123",
+          "optional": "Optional",
+          "source_name": "Source name, e.g., crm",
+          "source_type": "Source type, e.g., api"
+        },
+        "priority": {
+          "high": "High",
+          "low": "Low",
+          "normal": "Normal"
+        }
       }
     },
     "clipboard": {
@@ -120,6 +272,7 @@
           "custom_operation_button": "Custom"
         },
         "hints": {
+          "activate_action": "Choose whether Enter or double-click copies to clipboard or pastes directly into the target app",
           "auto_favorite": "Auto-favorite after adding or editing a note",
           "auto_paste": "Quickly paste content to the input field when using the left mouse button",
           "auto_sort": "Alignment to the top when copying existing content",
@@ -130,6 +283,9 @@
           "show_original_content": "Whether to display the original content on mouse hover after adding a note"
         },
         "label": {
+          "activate_action": "Enter/Double-click Action",
+          "activate_action_copy": "Copy to Clipboard",
+          "activate_action_paste": "Paste to Target App",
           "auto_favorite": "Auto Favorite",
           "auto_paste": "Auto Paste",
           "auto_paste_double": "Double Click",
@@ -144,7 +300,8 @@
             "delete": "Delete",
             "favorite": "Favorite",
             "notes": "Notes",
-            "paste_plain": "Paste as Plain Text"
+            "paste_plain": "Paste as Plain Text",
+            "send": "Send"
           },
           "paste_as_plain": "Paste as Plain Text",
           "show_original_content": "Show Original Content"
@@ -167,15 +324,24 @@
       },
       "window_settings": {
         "hints": {
-          "back_top": "When the window is activated, scroll to the top and check the first item"
+          "back_top": "When the window is activated, scroll to the top and check the first item",
+          "dock_scale": "Adjust the overall size of the Dock window",
+          "remember_active_id": "Remember the last selected item position when reopening Dock"
         },
         "label": {
           "back_top": "Back to top when activated",
+          "dock_scale": "Dock Scale",
+          "dock_scale_large": "Large",
+          "dock_scale_normal": "Normal",
+          "remember_active_id": "Remember Selection",
           "show_all": "Switch to all group when activated",
           "window_position": "Window Position",
           "window_position_center": "Center on Screen",
           "window_position_follow": "Follow Mouse Cursor",
-          "window_position_remember": "Remember Position"
+          "window_position_remember": "Remember Position",
+          "window_style": "Window Style",
+          "window_style_dock": "Dock",
+          "window_style_standard": "Standard"
         },
         "title": "Window Settings"
       }
@@ -249,11 +415,34 @@
     "menu": {
       "title": {
         "about": "About",
+        "ai_send": "AI Send",
         "backup": "Data Backup",
         "clipboard": "Clipboard",
         "general": "General",
         "history": "History",
-        "shortcut": "Shortcuts"
+        "privacy": "Privacy",
+        "shortcut": "Shortcuts",
+        "tag": "Tags"
+      }
+    },
+    "privacy": {
+      "data_collection": {
+        "description": "Your clipboard content, settings preferences, and all other data are stored locally on your device and will not be uploaded to any server",
+        "label": "No Data Collection",
+        "title": "Data Collection Policy"
+      },
+      "open_source": {
+        "button": {
+          "visit": "Visit"
+        },
+        "description": "https://github.com/ecopaste/wecut",
+        "label": "Open Source",
+        "title": "Contributions Welcome"
+      },
+      "privacy_consideration": {
+        "description": "We highly value your privacy and security. All data processing is done locally",
+        "label": "Privacy Consideration",
+        "title": "Privacy Consideration"
       }
     },
     "settings": {
@@ -325,18 +514,58 @@
       },
       "shortcut": {
         "hints": {
+          "copy_file_path": "Copy the file path of the selected item to clipboard when the window is activated",
           "paste_as_plain": "Paste selections as plain text or paths when the window is activated",
-          "quick_paste": "Use number key combos to quickly paste top 9 items when window is hidden"
+          "quick_paste": "Use number key combos to quickly paste top 9 items when window is hidden",
+          "send": "Send the selected item to AI API when the window is activated"
         },
         "label": {
+          "copy_file_path": "Copy File Path",
           "open_clipboard": "Open Clipboard Window",
           "open_settings": "Open Preferences Window",
           "paste_as_plain": "Paste as Plain Text",
-          "quick_paste": "Quick Paste"
+          "quick_paste": "Quick Paste",
+          "send": "Send to AI"
         },
         "title": "Shortcuts"
       }
     },
+    "text_expansion": {
+      "add": "Add Expansion",
+      "content": "Expansion Content",
+      "content_placeholder": "Enter content to expand, supports variables like {date}",
+      "content_required": "Please enter expansion content",
+      "delete_confirm": "Are you sure you want to delete this text expansion?",
+      "delete_title": "Confirm Delete",
+      "edit": "Edit Expansion",
+      "empty": "No text expansions yet, click the button below to create one",
+      "enabled": "Enable Text Expansion",
+      "enabled_desc": "When enabled, type prefix + trigger word to auto-expand content",
+      "list": "Text Expansions",
+      "prefix": "Trigger Prefix",
+      "prefix_hint": "Default: ;; (e.g., type ;;u123 to trigger)",
+      "title": "Text Expansion",
+      "trigger_word": "Trigger Word",
+      "trigger_word_exists": "This trigger word already exists",
+      "trigger_word_max": "Trigger word must be 50 characters or less",
+      "trigger_word_placeholder": "e.g., u123",
+      "trigger_word_required": "Please enter a trigger word"
+    },
     "title": "Preferences"
+  },
+  "tag": {
+    "color_label": "Tag Color",
+    "create": "New Tag",
+    "create_title": "New Tag",
+    "default_favorite": "Default Favorite",
+    "delete_confirm_desc": "Records under this tag will no longer be associated after deletion",
+    "delete_confirm_title": "Confirm Delete",
+    "edit_title": "Edit Tag",
+    "empty": "No tags yet, click the button below to create one",
+    "favorite_title": "Favorite",
+    "manage_tags": "Manage Tags...",
+    "manager_title": "Tag Management",
+    "name_label": "Tag Name",
+    "name_placeholder": "Enter tag name"
   }
 }

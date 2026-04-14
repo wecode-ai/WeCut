@@ -1,11 +1,16 @@
 use tauri::{async_runtime::spawn, AppHandle, Manager, Runtime, WebviewWindow};
 
+pub mod send_modal;
+pub use send_modal::*;
+
 // 主窗口的label
 pub static MAIN_WINDOW_LABEL: &str = "main";
 // 偏好设置窗口的label
 pub static PREFERENCE_WINDOW_LABEL: &str = "preference";
+// Toast窗口的label
+pub static TOAST_WINDOW_LABEL: &str = "toast";
 // 主窗口的title
-pub static MAIN_WINDOW_TITLE: &str = "EcoPaste";
+pub static MAIN_WINDOW_TITLE: &str = "WeCut";
 
 #[cfg(target_os = "macos")]
 mod macos;

@@ -18,11 +18,18 @@ export const globalStore = proxy<GlobalStore>({
 
   shortcut: {
     clipboard: "Alt+C",
+    copyFilePath: "",
     pastePlain: "",
     preference: "Alt+X",
     quickPaste: {
       enable: false,
       value: "Command+Shift",
+    },
+    // 兼容旧配置
+    send: "",
+    wegent: {
+      aiChat: "",
+      workQueue: "",
     },
   },
 

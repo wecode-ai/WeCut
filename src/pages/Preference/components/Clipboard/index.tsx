@@ -3,11 +3,14 @@ import { useSnapshot } from "valtio";
 import ProList from "@/components/ProList";
 import ProSwitch from "@/components/ProSwitch";
 import { clipboardStore } from "@/stores/clipboard";
+import ActivateAction from "./components/ActivateAction";
 import AudioSettings from "./components/AudioSettings";
 import AutoPaste from "./components/AutoPaste";
+import DockScale from "./components/DockScale";
 import OperationButton from "./components/OperationButton";
 import SearchPosition from "./components/SearchPosition";
 import WindowPosition from "./components/WindowPosition";
+import WindowStyle from "./components/WindowStyle";
 
 const ClipboardSettings = () => {
   const { window, search, content } = useSnapshot(clipboardStore);
@@ -16,6 +19,10 @@ const ClipboardSettings = () => {
   return (
     <>
       <ProList header={t("preference.clipboard.window_settings.title")}>
+        <WindowStyle />
+
+        <DockScale />
+
         <WindowPosition />
 
         <ProSwitch
@@ -28,6 +35,19 @@ const ClipboardSettings = () => {
         />
 
         <ProSwitch
+          description={t(
+            "preference.clipboard.window_settings.hints.remember_active_id",
+          )}
+          onChange={(value) => {
+            clipboardStore.window.rememberActiveId = value;
+          }}
+          title={t(
+            "preference.clipboard.window_settings.label.remember_active_id",
+          )}
+          value={window.rememberActiveId}
+        />
+
+        <ProSwitch
           onChange={(value) => {
             clipboardStore.window.showAll = value;
           }}
@@ -37,6 +57,28 @@ const ClipboardSettings = () => {
       </ProList>
 
       <AudioSettings />
+
+      <ProList
+        header={t(
+          "preference.clipboard.notification_settings.title",
+          "通知设置",
+        )}
+      >
+        <ProSwitch
+          description={t(
+            "preference.clipboard.notification_settings.hints.paste_success",
+            "粘贴成功后显示提示",
+          )}
+          onChange={(value) => {
+            clipboardStore.notification.pasteSuccess = value;
+          }}
+          title={t(
+            "preference.clipboard.notification_settings.label.paste_success",
+            "粘贴成功提示",
+          )}
+          value={clipboardStore.notification.pasteSuccess}
+        />
+      </ProList>
 
       <ProList header={t("preference.clipboard.search_box_settings.title")}>
         <SearchPosition key={1} />
@@ -68,6 +110,7 @@ const ClipboardSettings = () => {
 
       <ProList header={t("preference.clipboard.content_settings.title")}>
         <AutoPaste />
+        <ActivateAction />
 
         <ProSwitch
           description={t(

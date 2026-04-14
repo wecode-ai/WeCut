@@ -1,9 +1,15 @@
 import { useEventEmitter, useKeyPress, useMount, useReactive } from "ahooks";
 import type { EventEmitter } from "ahooks/lib/useEventEmitter";
+import { notification } from "antd";
 import { range } from "es-toolkit";
 import { find, last } from "es-toolkit/compat";
-import { createContext, useRef } from "react";
-import { startListening, stopListening } from "tauri-plugin-clipboard-x-api";
+import { t } from "i18next";
+import { createContext, useCallback, useRef } from "react";
+import {
+  startListening,
+  stopListening,
+  writeText,
+} from "tauri-plugin-clipboard-x-api";
 import { useSnapshot } from "valtio";
 import Audio, { type AudioRef } from "@/components/Audio";
 import { LISTEN_KEY, PRESET_SHORTCUT } from "@/constants";
@@ -12,9 +18,11 @@ import { useImmediateKey } from "@/hooks/useImmediateKey";
 import { useRegister } from "@/hooks/useRegister";
 import { useSubscribeKey } from "@/hooks/useSubscribeKey";
 import { useTauriListen } from "@/hooks/useTauriListen";
-import { pasteToClipboard } from "@/plugins/clipboard";
+import { type PasteResult, pasteToClipboard } from "@/plugins/clipboard";
 import {
+  applyMainWindowLayout,
   showTaskbarIcon,
+  showToastWindow,
   showWindow,
   toggleWindowVisible,
 } from "@/plugins/window";
@@ -52,18 +60,48 @@ const INITIAL_STATE: State = {
 
 interface MainContextValue {
   rootState: State;
+  handlePasteResult?: (result: PasteResult) => void;
 }
 
 export const MainContext = createContext<MainContextValue>({
+  handlePasteResult: undefined,
   rootState: INITIAL_STATE,
 });
 
 const Main = () => {
   const state = useReactive<State>(INITIAL_STATE);
   const { shortcut } = useSnapshot(globalStore);
-  const { window } = useSnapshot(clipboardStore);
+  const { window, notification: notificationStore } =
+    useSnapshot(clipboardStore);
   const eventBus = useEventEmitter<EventBusPayload>();
   const audioRef = useRef<AudioRef>(null);
+
+  // 处理粘贴结果
+  const handlePasteResult = useCallback(
+    (result: PasteResult) => {
+      if (result.success) {
+        // 显示粘贴成功提示（使用独立窗口）
+        if (notificationStore.pasteSuccess) {
+          showToastWindow();
+        }
+      } else if (result.error === "ACCESSIBILITY_DENIED") {
+        // 显示权限未授权通知
+        notification.error({
+          description: t(
+            "notification.accessibility_denied.description",
+            "请前往 系统设置 > 隐私与安全性 > 辅助功能 中授权本应用",
+          ),
+          duration: 5,
+          message: t(
+            "notification.accessibility_denied.title",
+            "需要辅助功能权限",
+          ),
+          placement: "topRight",
+        });
+      }
+    },
+    [notificationStore.pasteSuccess, t],
+  );
 
   useMount(() => {
     state.eventBus = eventBus;
@@ -84,6 +122,8 @@ const Main = () => {
   useTauriListen<Store>(LISTEN_KEY.STORE_CHANGED, ({ payload }) => {
     deepAssign(globalStore, payload.globalStore);
     deepAssign(clipboardStore, payload.clipboardStore);
+
+    applyMainWindowLayout();
   });
 
   // 窗口显示与隐藏
@@ -127,14 +167,39 @@ const Main = () => {
   });
 
   // 监听粘贴为纯文本的快捷键
-  useKeyPress(shortcut.pastePlain, (event) => {
+  useKeyPress(shortcut.pastePlain, async (event) => {
     event.preventDefault();
 
     const data = find(state.list, { id: state.activeId });
 
     if (!data) return;
 
-    pasteToClipboard(data, true);
+    const result = await pasteToClipboard(data, true);
+    handlePasteResult(result);
+  });
+
+  // 监听复制文件路径的快捷键
+  useKeyPress(shortcut.copyFilePath, (event) => {
+    event.preventDefault();
+
+    const data = find(state.list, { id: state.activeId });
+
+    if (!data) return;
+
+    const { type, value } = data;
+
+    let filePath: string | undefined;
+
+    if (type === "image") {
+      filePath = value;
+    } else if (type === "files") {
+      const paths = Array.isArray(value) ? value : JSON.parse(value);
+      filePath = paths.join("\n");
+    }
+
+    if (filePath) {
+      writeText(filePath);
+    }
   });
 
   // 监听快速粘贴的快捷键
@@ -146,7 +211,8 @@ const Main = () => {
 
       const data = state.list[index - 1];
 
-      pasteToClipboard(data);
+      const result = await pasteToClipboard(data);
+      handlePasteResult(result);
     },
     [state.quickPasteKeys],
   );
@@ -154,6 +220,7 @@ const Main = () => {
   return (
     <MainContext.Provider
       value={{
+        handlePasteResult,
         rootState: state,
       }}
     >

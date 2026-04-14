@@ -1,10 +1,105 @@
 mod core;
+mod plugins;
 
 use core::{prevent_default, setup};
-use tauri::{generate_context, Builder, Manager, WindowEvent};
+use std::env;
+use tauri::{generate_context, generate_handler, Builder, Manager, WindowEvent};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_eco_window::{show_main_window, MAIN_WINDOW_LABEL, PREFERENCE_WINDOW_LABEL};
 use tauri_plugin_log::{Target, TargetKind};
+
+// 读取系统环境变量
+#[tauri::command]
+fn get_system_env(key: String) -> Option<String> {
+    env::var(key).ok()
+}
+
+// 发送消息到 Work Queue
+#[tauri::command]
+async fn send_to_work_queue(
+    base_url: String,
+    api_token: String,
+    queue_name: String,
+    note: Option<String>,
+    title: Option<String>,
+    content: Option<String>,
+    file_paths: Vec<String>,
+) -> Result<(), String> {
+    use reqwest::multipart::{Form, Part};
+    use reqwest::Client;
+
+    let url = format!(
+        "{}/api/work-queues/by-name/{}/messages/ingest",
+        base_url,
+        urlencoding::encode(&queue_name)
+    );
+
+    log::info!(
+        "[send_to_work_queue] url={}, content_len={:?}, files_count={}",
+        url,
+        content.as_ref().map(|s| s.len()),
+        file_paths.len()
+    );
+
+    // 创建客户端，禁用代理
+    let client = Client::builder()
+        .no_proxy()
+        .build()
+        .map_err(|e| format!("创建客户端失败: {}", e))?;
+
+    let mut form = Form::new();
+
+    // 添加 content（剪切板文本内容）
+    if let Some(text) = content {
+        form = form.text("content", text);
+    }
+
+    // 添加 note（备注）
+    if let Some(n) = note {
+        form = form.text("note", n);
+    }
+
+    // 添加 title（标题）
+    if let Some(t) = title {
+        form = form.text("title", t);
+    }
+
+    // 添加文件附件
+    for file_path in &file_paths {
+        let file_content = tokio::fs::read(file_path)
+            .await
+            .map_err(|e| format!("读取文件失败 {}: {}", file_path, e))?;
+        let file_name = std::path::Path::new(file_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("file")
+            .to_string();
+
+        let part = Part::bytes(file_content)
+            .file_name(file_name)
+            .mime_str("application/octet-stream")
+            .map_err(|e| e.to_string())?;
+        form = form.part("files", part);
+    }
+    let response = client
+        .post(&url)
+        .header("Authorization", format!("Bearer {}", api_token))
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|e| format!("请求失败: {}", e))?;
+
+    log::info!("[send_to_work_queue] Response status: {}", response.status());
+
+    if response.status().is_success() {
+        Ok(())
+    } else {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        log::error!("[send_to_work_queue] Error: HTTP {}: {}", status, body);
+        Err(format!("HTTP {}: {}", status, body))
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -15,6 +110,14 @@ pub fn run() {
             let main_window = app.get_webview_window(MAIN_WINDOW_LABEL).unwrap();
 
             let preference_window = app.get_webview_window(PREFERENCE_WINDOW_LABEL).unwrap();
+
+            // 验证 send-modal 窗口是否存在
+            let send_modal_window = app.get_webview_window("send-modal");
+            if send_modal_window.is_some() {
+                log::info!("[setup] send-modal window found");
+            } else {
+                log::warn!("[setup] send-modal window not found!");
+            }
 
             setup::default(&app_handle, main_window.clone(), preference_window.clone());
 
@@ -63,6 +166,8 @@ pub fn run() {
         .plugin(tauri_plugin_locale::init())
         // 打开文件或者链接：https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/opener
         .plugin(tauri_plugin_opener::init())
+        // HTTP 请求插件：https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/http
+        .plugin(tauri_plugin_http::init())
         // 禁用 webview 的默认行为：https://github.com/ferreira-tb/tauri-plugin-prevent-default
         .plugin(prevent_default::init())
         // 剪贴板插件：https://github.com/ayangweb/tauri-plugin-clipboard-x
@@ -73,6 +178,17 @@ pub fn run() {
         .plugin(tauri_plugin_eco_paste::init())
         // 自定义判断是否自动启动的插件
         .plugin(tauri_plugin_eco_autostart::init())
+        // 获取活跃应用信息的插件
+        .plugin(tauri_plugin_eco_active_app::init())
+        // 文本扩展插件
+        .plugin(plugins::text_expansion::init())
+        .invoke_handler(generate_handler![
+            get_system_env,
+            send_to_work_queue,
+            plugins::text_expansion::commands::set_text_expansion_prefix,
+            plugins::text_expansion::commands::set_text_expansions,
+            plugins::text_expansion::commands::set_text_expansion_enabled,
+        ])
         .on_window_event(|window, event| match event {
             // 让 app 保持在后台运行：https://tauri.app/v1/guides/features/system-tray/#preventing-the-app-from-closing
             WindowEvent::CloseRequested { api, .. } => {
