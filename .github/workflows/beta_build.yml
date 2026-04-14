@@ -124,6 +124,11 @@ jobs:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       NO_STRIP: true
       CI: false
+      # AI 服务配置
+      VITE_AI_DOMAIN: ${{ secrets.VITE_AI_DOMAIN }}
+      VITE_AI_MODEL: ${{ secrets.VITE_AI_MODEL }}
+      VITE_PLATFORM_NAME: ${{ secrets.VITE_PLATFORM_NAME }}
+      ECO_FEATURE_AI_CHAT: ${{ secrets.ECO_FEATURE_AI_CHAT }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
