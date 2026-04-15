@@ -41,6 +41,9 @@ tauri-plugin-clipboard-x = "2"
 reqwest = { version = "0.12", features = ["multipart"] }
 urlencoding = "2"
 tokio = { version = "1", features = ["fs"] }
+xcap = "0.9.4"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+base64 = "0.22"
 tauri-plugin-fs-pro.workspace = true
 tauri-plugin-eco-window.workspace = true
 tauri-plugin-eco-paste.workspace = true
@@ -51,6 +54,7 @@ tauri-plugin-eco-active-app.workspace = true
 tauri-nspanel.workspace = true
 core-graphics = { version = "0.24", features = ["highsierra"] }
 core-foundation = "0.10"
+foreign-types-shared = "0.3"
 
 [features]
 cargo-clippy = []

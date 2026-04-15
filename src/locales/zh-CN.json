@@ -152,7 +152,8 @@
         "relaunch": "重启应用",
         "start_listening": "开启监听",
         "stop_listening": "停止监听",
-        "version": "版本"
+        "version": "版本",
+        "screenshot": "截图"
       }
     }
   },
@@ -423,7 +424,8 @@
         "privacy": "隐私声明",
         "shortcut": "快捷键",
         "tag": "标签管理",
-        "wegent": "Wegent集成"
+        "wegent": "Wegent集成",
+        "screenshot": "截图"
       }
     },
     "privacy": {
@@ -520,7 +522,8 @@
           "quick_paste": "隐藏窗口时，使用数字组合键快速粘贴前九项",
           "send": "激活窗口时，将选中的内容发送到 AI 接口",
           "send_ai_chat": "激活窗口时，将选中的内容发送到 WegentChat",
-          "send_work_queue": "激活窗口时，将选中的内容发送到 Wegent待办"
+          "send_work_queue": "激活窗口时，将选中的内容发送到 Wegent待办",
+          "screenshot": "全局截图快捷键，按下后弹出截图界面"
         },
         "label": {
           "copy_file_path": "复制文件路径",
@@ -531,7 +534,8 @@
           "send": "发送到 AI",
           "send_ai_chat": "发送到 WegentChat",
           "send_work_queue": "发送到 Wegent待办",
-          "wegent_group": "Wegent 发送"
+          "wegent_group": "Wegent 发送",
+          "screenshot": "截图"
         },
         "title": "快捷键"
       }
@@ -619,6 +623,50 @@
           "high": "高",
           "low": "低",
           "normal": "普通"
+        }
+      }
+    },
+    "screenshot": {
+      "settings": {
+        "title": "截图设置",
+        "label": {
+          "save_to_history": "自动保存到历史记录",
+          "default_action": "截图后默认行为",
+          "save_format": "保存格式"
+        },
+        "hints": {
+          "save_to_history": "截图后自动将图片保存到剪贴板历史记录",
+          "default_action": "截图后的默认操作",
+          "save_format": "保存截图时的图片格式"
+        },
+        "default_action": {
+          "menu": "弹出操作菜单",
+          "copy": "直接复制",
+          "save": "直接保存"
+        }
+      },
+      "editor": {
+        "tool": {
+          "rect": "矩形",
+          "ellipse": "椭圆",
+          "arrow": "箭头",
+          "text": "文字",
+          "pen": "画笔",
+          "mosaic": "马赛克"
+        },
+        "action": {
+          "cancel": "取消",
+          "copy": "复制",
+          "save": "保存",
+          "send": "发送到 Wegent",
+          "undo": "撤销",
+          "redo": "重做"
+        },
+        "hint": {
+          "copy_success": "已复制到剪贴板",
+          "save_success": "截图已保存",
+          "send_title": "发送截图",
+          "permission_denied": "截图权限被拒绝，请在系统设置中授权屏幕录制权限"
         }
       }
     }

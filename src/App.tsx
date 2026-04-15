@@ -91,8 +91,12 @@ const App = () => {
     openUrl(href);
   });
 
-  // 隐藏窗口
-  useKeyPress(["esc", PRESET_SHORTCUT.HIDE_WINDOW], hideWindow);
+  // 隐藏窗口（pin 窗口由 PinViewer 自行处理 ESC，此处跳过）
+  useKeyPress(["esc", PRESET_SHORTCUT.HIDE_WINDOW], () => {
+    const label = getCurrentWebviewWindow().label;
+    if (label.startsWith("pin-")) return;
+    hideWindow();
+  });
 
   // 监听 promise 的错误，输出到日志
   useEventListener("unhandledrejection", ({ reason }) => {

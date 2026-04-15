@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { useEventEmitter, useKeyPress, useMount, useReactive } from "ahooks";
 import type { EventEmitter } from "ahooks/lib/useEventEmitter";
 import { notification } from "antd";
@@ -128,6 +129,19 @@ const Main = () => {
 
   // 窗口显示与隐藏
   useRegister(toggleWindowVisible, [shortcut.clipboard]);
+
+  // 注册截图全局快捷键
+  const triggerScreenshot = useCallback(async () => {
+    try {
+      // 先隐藏主窗口，再触发截图（screenshot 窗口已预创建，无需等待）
+      await invoke("plugin:eco-window|hide_window");
+      await invoke("show_screenshot_window", { monitorIndex: 0 });
+    } catch {
+      // Screenshot shortcut failed
+    }
+  }, []);
+
+  useRegister(triggerScreenshot, [shortcut.screenshot]);
 
   // 打开偏好设置窗口
   useKeyPress(PRESET_SHORTCUT.OPEN_PREFERENCES, () => {

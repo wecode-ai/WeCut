@@ -95,7 +95,8 @@
         "relaunch": "再開",
         "start_listening": "使用を停止",
         "stop_listening": "使用を再開",
-        "version": "バージョン"
+        "version": "バージョン",
+        "screenshot": "スクリーンショット"
       }
     }
   },
@@ -305,7 +306,8 @@
         "general": "共通設定",
         "history": "履歴",
         "privacy": "プライバシー",
-        "shortcut": "ショートカットキー"
+        "shortcut": "ショートカットキー",
+        "screenshot": "スクリーンショット"
       }
     },
     "privacy": {
@@ -400,7 +402,8 @@
           "copy_file_path": "ウィンドウがアクティブな時、選択した項目のファイルパスをクリップボードにコピー",
           "paste_as_plain": "選択範囲をプレーンテキスト、パスとして貼り付けます。",
           "quick_paste": "ウィンドウを隠す際、数字キーの組み合わせで最初の9項目を素早く貼り付ける",
-          "send": "ウィンドウがアクティブな時、選択した内容をAI APIに送信"
+          "send": "ウィンドウがアクティブな時、選択した内容をAI APIに送信",
+          "screenshot": "スクリーンショットのグローバルショートカットキー"
         },
         "label": {
           "copy_file_path": "ファイルパスをコピー",
@@ -408,12 +411,57 @@
           "open_settings": "クリップボード設定を開く",
           "paste_as_plain": "プレーンテキストとして貼り付け",
           "quick_paste": "クイックペースト",
-          "send": "AIに送信"
+          "send": "AIに送信",
+          "screenshot": "スクリーンショット"
         },
         "title": "ショートカットキー"
       }
     },
-    "title": "環境設定"
+    "title": "環境設定",
+    "screenshot": {
+      "settings": {
+        "title": "スクリーンショット設定",
+        "label": {
+          "save_to_history": "履歴に自動保存",
+          "default_action": "デフォルトアクション",
+          "save_format": "保存形式"
+        },
+        "hints": {
+          "save_to_history": "スクリーンショットをクリップボード履歴に自動保存",
+          "default_action": "スクリーンショット後のデフォルト操作",
+          "save_format": "スクリーンショット保存時の画像形式"
+        },
+        "default_action": {
+          "menu": "アクションメニューを表示",
+          "copy": "直接コピー",
+          "save": "直接保存"
+        }
+      },
+      "editor": {
+        "tool": {
+          "rect": "Rectangle",
+          "ellipse": "Ellipse",
+          "arrow": "Arrow",
+          "text": "Text",
+          "pen": "Pen",
+          "mosaic": "Mosaic"
+        },
+        "action": {
+          "cancel": "キャンセル",
+          "copy": "コピー",
+          "save": "保存",
+          "send": "Wegentに送信",
+          "undo": "元に戻す",
+          "redo": "やり直す"
+        },
+        "hint": {
+          "copy_success": "クリップボードにコピーしました",
+          "save_success": "スクリーンショットを保存しました",
+          "send_title": "スクリーンショットを送信",
+          "permission_denied": "スクリーンショット権限が拒否されました。システム設定で画面録画を許可してください。"
+        }
+      }
+    }
   },
   "tag": {
     "color_label": "タグの色",

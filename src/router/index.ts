@@ -1,6 +1,8 @@
 import { createHashRouter } from "react-router-dom";
 import Main from "@/pages/Main";
+import PinViewer from "@/pages/PinViewer";
 import Preference from "@/pages/Preference";
+import Screenshot from "@/pages/Screenshot";
 import SendModal from "@/pages/SendModal";
 import Toast from "@/pages/Toast";
 
@@ -20,5 +22,13 @@ export const router = createHashRouter([
   {
     Component: SendModal,
     path: "/send-modal",
+  },
+  {
+    Component: Screenshot,
+    path: "/screenshot",
+  },
+  {
+    Component: PinViewer,
+    path: "/pin-viewer",
   },
 ]);

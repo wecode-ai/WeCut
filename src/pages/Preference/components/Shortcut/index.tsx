@@ -29,6 +29,18 @@ const Shortcut = () => {
           value={shortcut.preference}
         />
 
+        <ProShortcut
+          description={t("preference.shortcut.shortcut.hints.screenshot")}
+          onChange={(value) => {
+            globalStore.shortcut.screenshot = value;
+            if (globalStore.screenshot) {
+              globalStore.screenshot.shortcut = value;
+            }
+          }}
+          title={t("preference.shortcut.shortcut.label.screenshot")}
+          value={shortcut.screenshot || ""}
+        />
+
         <QuickPaste />
 
         <ProShortcut

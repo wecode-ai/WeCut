@@ -25,6 +25,7 @@ import Clipboard from "./components/Clipboard";
 import General from "./components/General";
 import History from "./components/History";
 import Privacy from "./components/Privacy";
+import Screenshot from "./components/Screenshot";
 import Shortcut from "./components/Shortcut";
 import TagManager from "./components/TagManager";
 import TextExpansion from "./components/TextExpansion";
@@ -88,6 +89,12 @@ const Preference = () => {
         icon: "i-lucide:keyboard",
         key: "shortcut",
         label: t("preference.menu.title.shortcut"),
+      },
+      {
+        content: <Screenshot />,
+        icon: "i-lucide:camera",
+        key: "screenshot",
+        label: t("preference.menu.title.screenshot", "截图"),
       },
     ];
 

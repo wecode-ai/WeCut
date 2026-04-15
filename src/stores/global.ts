@@ -21,6 +21,7 @@ export const globalStore = proxy<GlobalStore>({
     copyFilePath: "",
     pastePlain: "",
     preference: "Alt+X",
+    screenshot: "CmdOrCtrl+Shift+X",
     quickPaste: {
       enable: false,
       value: "Command+Shift",
@@ -31,6 +32,13 @@ export const globalStore = proxy<GlobalStore>({
       aiChat: "",
       workQueue: "",
     },
+  },
+
+  screenshot: {
+    defaultAction: "menu",
+    saveFormat: "png",
+    saveToHistory: true,
+    shortcut: "CmdOrCtrl+Shift+X",
   },
 
   update: {
