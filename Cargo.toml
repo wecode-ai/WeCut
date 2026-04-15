@@ -34,6 +34,3 @@ opt-level = 3
 # 对自己的 crate 也开启优化（rgba->rgb 转换和 jpeg 编码在 debug 模式下极慢）
 [profile.dev.package.WeCut]
 opt-level = 3
-
-[profile.dev.package.eco_paste_lib]
-opt-level = 3

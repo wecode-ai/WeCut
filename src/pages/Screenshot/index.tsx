@@ -1,7 +1,8 @@
 import { tempDir } from "@tauri-apps/api/path";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { writeFile } from "@tauri-apps/plugin-fs";
 import { nanoid } from "nanoid";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LISTEN_KEY } from "@/constants";
 import { useTauriListen } from "@/hooks/useTauriListen";
 import { showSendModalWindow } from "@/plugins/sendModal";
@@ -12,7 +13,11 @@ import { deepAssign } from "@/utils/object";
 import Editor from "./components/Editor";
 import type { Selection } from "./components/SelectionOverlay";
 import SelectionOverlay from "./components/SelectionOverlay";
-import { hideScreenshotWindow } from "./hooks/useScreenshot";
+import {
+  createPinWindow,
+  getScreenshotData,
+  hideScreenshotWindow,
+} from "./hooks/useScreenshot";
 
 type Phase = "idle" | "selecting" | "editing";
 
@@ -25,6 +30,10 @@ const Screenshot = () => {
     x: 0,
     y: 0,
   });
+  const [pinned, setPinned] = useState(false);
+
+  // 当前窗口 label（用于 pin/close 操作）
+  const windowLabel = getCurrentWindow().label;
 
   // Sync store changes from other windows (e.g. Preferences)
   useTauriListen<Store>(LISTEN_KEY.STORE_CHANGED, ({ payload }) => {
@@ -32,19 +41,40 @@ const Screenshot = () => {
     deepAssign(clipboardStore, payload.clipboardStore);
   });
 
-  // 监听 Rust 端推送的截图数据（show_screenshot_window 中先截图再显示窗口）
-  // 收到数据后立即进入 selecting 状态，无需前端再发起截图请求
   const resetState = useCallback(() => {
     setPhase("idle");
     setBgImage("");
     setSelection({ h: 0, w: 0, x: 0, y: 0 });
+    setPinned(false);
   }, []);
 
-  useTauriListen<string>("screenshot:ready", ({ payload }) => {
+  // 监听 Rust 端推送的截图 label（show_screenshot_window 中先截图再创建窗口）
+  // 收到 label 后主动拉取截图数据
+  useTauriListen<string>("screenshot:ready", ({ payload: label }) => {
+    // 只处理发给本窗口的消息（label 匹配）
+    if (label !== windowLabel) return;
     resetState();
-    setBgImage(payload);
-    setPhase("selecting");
+    // 主动拉取截图数据
+    getScreenshotData(label).then((data) => {
+      if (data) {
+        setBgImage(data.image_data_url);
+        setPhase("selecting");
+      }
+    });
   });
+
+  // 页面加载时也尝试主动拉取（处理 emit 先于监听注册的情况）
+  const fetchedRef = useRef(false);
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    getScreenshotData(windowLabel).then((data) => {
+      if (data) {
+        setBgImage(data.image_data_url);
+        setPhase("selecting");
+      }
+    });
+  }, [windowLabel]);
 
   // ESC key handler at the top level
   useEffect(() => {
@@ -58,9 +88,14 @@ const Screenshot = () => {
   }, []);
 
   const handleClose = async () => {
+    // 重置所有状态
     setPhase("idle");
+    setBgImage("");
+    setSelection({ h: 0, w: 0, x: 0, y: 0 });
+    setPinned(false);
     try {
-      await hideScreenshotWindow();
+      // 隐藏窗口（预创建窗口会 hide 保留，动态窗口会 close）
+      await hideScreenshotWindow(windowLabel);
     } catch {
       // Window may already be hidden
     }
@@ -71,13 +106,34 @@ const Screenshot = () => {
     setPhase("editing");
   };
 
-  const handleSelectionCancel = async () => {
-    await handleClose();
+  const handleSelectionMove = (sel: Selection) => {
+    setSelection(sel);
   };
 
-  const handleEditorClose = async () => {
-    // Go back to selection phase so user can re-select
-    setPhase("selecting");
+  const handlePin = async (dataUrl: string) => {
+    try {
+      // 创建独立的 pin 窗口，传入编辑后的图像
+      await createPinWindow(
+        dataUrl,
+        selection.x,
+        selection.y,
+        selection.w,
+        selection.h,
+      );
+      // 隐藏截图窗口，归还给复用池
+      await hideScreenshotWindow(windowLabel);
+      // 重置状态
+      setPhase("idle");
+      setBgImage("");
+      setSelection({ h: 0, w: 0, x: 0, y: 0 });
+      setPinned(false);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleSelectionCancel = async () => {
+    await handleClose();
   };
 
   // Send the screenshot to Wegent by saving to temp file first, then opening send modal
@@ -87,7 +143,6 @@ const Screenshot = () => {
       const fileName = `screenshot-${nanoid(8)}.png`;
       const filePath = `${tmpDir}/${fileName}`;
 
-      // Decode base64 and write to temp file
       const base64 = dataUrl.split(",")[1] ?? "";
       const binaryString = atob(base64);
       const bytes = new Uint8Array(binaryString.length);
@@ -96,7 +151,6 @@ const Screenshot = () => {
       }
       await writeFile(filePath, bytes);
 
-      // Create a synthetic history item for the send modal
       const syntheticItem = {
         createTime: new Date().toISOString(),
         favorite: false,
@@ -107,8 +161,8 @@ const Screenshot = () => {
         value: filePath,
       };
 
-      await hideScreenshotWindow();
-      await showSendModalWindow(syntheticItem as any, "aiChat");
+      await hideScreenshotWindow(windowLabel);
+      await showSendModalWindow(syntheticItem as any, "workQueue");
     } catch {
       // Send to Wegent failed
     }
@@ -125,8 +179,8 @@ const Screenshot = () => {
         width: "100vw",
       }}
     >
-      {/* Full-screen background image */}
-      {bgImage && (
+      {/* Full-screen background image — hidden when pinned */}
+      {bgImage && !pinned && (
         <img
           alt=""
           src={bgImage}
@@ -157,8 +211,11 @@ const Screenshot = () => {
       {phase === "editing" && bgImage && (
         <Editor
           bgImage={bgImage}
-          onClose={handleEditorClose}
+          onClose={handleClose}
+          onMove={handleSelectionMove}
+          onPin={handlePin}
           onSendToWegent={handleSendToWegent}
+          pinned={pinned}
           selection={selection}
         />
       )}

@@ -133,8 +133,8 @@ const Main = () => {
   // 注册截图全局快捷键
   const triggerScreenshot = useCallback(async () => {
     try {
+      // 先隐藏主窗口，再触发截图（screenshot 窗口已预创建，无需等待）
       await invoke("plugin:eco-window|hide_window");
-      await new Promise((resolve) => setTimeout(resolve, 120));
       await invoke("show_screenshot_window", { monitorIndex: 0 });
     } catch {
       // Screenshot shortcut failed

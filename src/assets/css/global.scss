@@ -27,3 +27,56 @@ html {
     }
   }
 }
+
+/* OCR 文字块 — 强制允许鼠标选中文字 */
+.ocr-text-block {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  cursor: text !important;
+}
+
+/* 截图工具栏线宽滑块 — 细轨道样式 */
+/* 截图工具栏线宽滑块 — 轨道高度跟随线宽动态变化 */
+input.screenshot-range {
+  --track-h: 2px; /* 默认值，由 React inline style 覆盖 */
+  --thumb-size: 12px;
+
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  height: 20px; /* 点击区域保持足够大 */
+  outline: none;
+  width: 72px;
+
+  &::-webkit-slider-runnable-track {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 99px;
+    height: var(--track-h);
+  }
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #ffffff;
+    border: 2px solid #3b82f6;
+    border-radius: 50%;
+    height: var(--thumb-size);
+    margin-top: calc((var(--track-h) - var(--thumb-size)) / 2);
+    width: var(--thumb-size);
+  }
+
+  &::-moz-range-track {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 99px;
+    height: var(--track-h);
+  }
+
+  &::-moz-range-thumb {
+    background: #ffffff;
+    border: 2px solid #3b82f6;
+    border-radius: 50%;
+    height: var(--thumb-size);
+    width: var(--thumb-size);
+  }
+}

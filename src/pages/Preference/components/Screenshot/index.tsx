@@ -3,28 +3,15 @@ import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import ProList from "@/components/ProList";
 import ProListItem from "@/components/ProListItem";
-import ProShortcut from "@/components/ProShortcut";
 import ProSwitch from "@/components/ProSwitch";
 import { globalStore } from "@/stores/global";
 
 const Screenshot = () => {
-  const { screenshot, shortcut } = useSnapshot(globalStore);
+  const { screenshot } = useSnapshot(globalStore);
   const { t } = useTranslation();
 
   return (
     <ProList header={t("preference.screenshot.settings.title")}>
-      <ProShortcut
-        description={t("preference.shortcut.shortcut.hints.screenshot")}
-        onChange={(value) => {
-          globalStore.shortcut.screenshot = value;
-          if (globalStore.screenshot) {
-            globalStore.screenshot.shortcut = value;
-          }
-        }}
-        title={t("preference.shortcut.shortcut.label.screenshot")}
-        value={shortcut.screenshot || ""}
-      />
-
       <ProSwitch
         description={t("preference.screenshot.settings.hints.save_to_history")}
         onChange={(value) => {

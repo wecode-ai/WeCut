@@ -193,13 +193,25 @@ pub fn run() {
             screenshot::capture_screen,
             screenshot::show_screenshot_window,
             screenshot::hide_screenshot_window,
+            screenshot::pin_screenshot_window,
+            screenshot::get_screenshot_data,
+            screenshot::create_pin_window,
+            screenshot::get_pin_data,
+            screenshot::close_pin_window,
+            screenshot::ocr_image,
         ])
         .on_window_event(|window, event| match event {
             // 让 app 保持在后台运行：https://tauri.app/v1/guides/features/system-tray/#preventing-the-app-from-closing
+            // pin 窗口（pin-N）和动态截图窗口（screenshot-N）允许真正关闭
             WindowEvent::CloseRequested { api, .. } => {
-                window.hide().unwrap();
-
-                api.prevent_close();
+                let label = window.label();
+                if label.starts_with("pin-") || label.starts_with("screenshot-") {
+                    // 动态创建的窗口：允许真正关闭
+                } else {
+                    // 预创建的固定窗口：隐藏保留
+                    window.hide().unwrap();
+                    api.prevent_close();
+                }
             }
             _ => {}
         })
