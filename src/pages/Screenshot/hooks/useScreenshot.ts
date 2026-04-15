@@ -21,6 +21,7 @@ export interface ScreenshotData {
   w: number;
   h: number;
   label: string;
+  monitor_index: number;
 }
 
 /**
@@ -160,6 +161,26 @@ export const saveScreenshotToFile = async (
   await writeFile(filePath, bytes);
 
   return filePath;
+};
+
+/** 屏幕上单个窗口的信息（逻辑像素坐标，相对于所在显示器左上角） */
+export interface WindowInfo {
+  title: string;
+  app_name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * 获取当前屏幕上所有可见窗口的位置和大小。
+ * monitorIndex: 目标显示器索引（与 showScreenshotWindow 保持一致）
+ */
+export const getWindowList = async (
+  monitorIndex: number,
+): Promise<WindowInfo[]> => {
+  return await invoke<WindowInfo[]>("get_window_list", { monitorIndex });
 };
 
 /** OCR 识别结果中单个文字块的结构 */

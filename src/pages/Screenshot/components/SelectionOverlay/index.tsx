@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import type { WindowInfo } from "../../hooks/useScreenshot";
+import { getWindowList } from "../../hooks/useScreenshot";
 
 export interface Selection {
   x: number;
@@ -11,6 +13,8 @@ interface SelectionOverlayProps {
   bgImage: string;
   onConfirm: (sel: Selection) => void;
   onCancel: () => void;
+  /** 当前显示器索引，用于获取窗口列表 */
+  monitorIndex?: number;
 }
 
 // 8 个控制点的类型
@@ -82,10 +86,30 @@ function hitTestHandle(
   return null;
 }
 
+/** 找到包含指定点的最顶层窗口（窗口列表已按 z-order 从前到后排列） */
+function findWindowAtPoint(
+  px: number,
+  py: number,
+  windows: WindowInfo[],
+): WindowInfo | null {
+  for (const win of windows) {
+    if (
+      px >= win.x &&
+      px <= win.x + win.width &&
+      py >= win.y &&
+      py <= win.y + win.height
+    ) {
+      return win;
+    }
+  }
+  return null;
+}
+
 const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   bgImage,
   onConfirm,
   onCancel,
+  monitorIndex = 0,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
@@ -102,6 +126,13 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   const bgImageEl = useRef<HTMLImageElement | null>(null);
   const animFrameRef = useRef<number>(0);
 
+  // 窗口列表（用于自动框选）
+  const windowListRef = useRef<WindowInfo[]>([]);
+  // 当前鼠标悬停的窗口（高亮显示）
+  const hoveredWindowRef = useRef<WindowInfo | null>(null);
+  // 是否已经开始拖拽（区分点击和拖拽）
+  const hasDraggedRef = useRef(false);
+
   // Load bg image once
   useEffect(() => {
     const img = new Image();
@@ -117,6 +148,17 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       }
     };
   }, [bgImage]);
+
+  // 加载窗口列表
+  useEffect(() => {
+    getWindowList(monitorIndex)
+      .then((list) => {
+        windowListRef.current = list;
+      })
+      .catch(() => {
+        windowListRef.current = [];
+      });
+  }, [monitorIndex]);
 
   const getCanvas = (): HTMLCanvasElement | null => canvasRef.current;
   const getCtx = (): CanvasRenderingContext2D | null =>
@@ -148,6 +190,55 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     // Dark overlay over entire canvas
     ctx.fillStyle = "rgba(0,0,0,0.45)";
     ctx.fillRect(0, 0, width, height);
+
+    // 绘制悬停窗口高亮（仅在未开始选区时显示）
+    const hovered = hoveredWindowRef.current;
+    if (hovered && w === 0 && h === 0) {
+      const { x: hx, y: hy, width: hw, height: hh } = hovered;
+
+      // 清除（显示）悬停窗口区域
+      ctx.clearRect(hx, hy, hw, hh);
+
+      // 重绘该区域的背景图
+      ctx.drawImage(
+        bgImageEl.current,
+        hx * dpr,
+        hy * dpr,
+        hw * dpr,
+        hh * dpr,
+        hx,
+        hy,
+        hw,
+        hh,
+      );
+
+      // 绘制高亮边框（蓝色虚线）
+      ctx.strokeStyle = "rgba(22, 119, 255, 0.9)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 3]);
+      ctx.strokeRect(hx + 1, hy + 1, hw - 2, hh - 2);
+      ctx.setLineDash([]);
+
+      // 绘制应用名称标签
+      const label = hovered.app_name || hovered.title || "Window";
+      ctx.font = "bold 13px system-ui, sans-serif";
+      const metrics = ctx.measureText(label);
+      const padding = 6;
+      const tooltipW = metrics.width + padding * 2;
+      const tooltipH = 24;
+      let tooltipX = hx;
+      let tooltipY = hy - tooltipH - 4;
+      if (tooltipY < 0) tooltipY = hy + 4;
+      if (tooltipX + tooltipW > width) tooltipX = width - tooltipW - 4;
+
+      ctx.fillStyle = "rgba(22, 119, 255, 0.85)";
+      ctx.beginPath();
+      ctx.roundRect(tooltipX, tooltipY, tooltipW, tooltipH, 4);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(label, tooltipX + padding, tooltipY + tooltipH - 7);
+    }
 
     if (w > 0 && h > 0) {
       // Clear (reveal) the selection rectangle
@@ -266,8 +357,11 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 
     // 普通拖拽 → 重新选区
     isDragging.current = true;
+    hasDraggedRef.current = false;
     startPos.current = pos;
     currentSel.current = { h: 0, w: 0, x: pos.x, y: pos.y };
+    // 开始拖拽时清除悬停高亮
+    hoveredWindowRef.current = null;
     drawFrame();
   };
 
@@ -355,20 +449,42 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       return;
     }
 
-    if (!isDragging.current) return;
-    const sx = startPos.current.x;
-    const sy = startPos.current.y;
-    currentSel.current = {
-      h: pos.y - sy,
-      w: pos.x - sx,
-      x: sx,
-      y: sy,
-    };
-    cancelAnimationFrame(animFrameRef.current);
-    animFrameRef.current = requestAnimationFrame(drawFrame);
+    if (isDragging.current) {
+      // 标记已经发生了真实拖拽
+      const dx = pos.x - startPos.current.x;
+      const dy = pos.y - startPos.current.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        hasDraggedRef.current = true;
+      }
+
+      const sx = startPos.current.x;
+      const sy = startPos.current.y;
+      currentSel.current = {
+        h: pos.y - sy,
+        w: pos.x - sx,
+        x: sx,
+        y: sy,
+      };
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = requestAnimationFrame(drawFrame);
+      return;
+    }
+
+    // 未拖拽时：更新悬停窗口高亮（仅在无选区时）
+    const { w, h } = currentSel.current;
+    if (w === 0 && h === 0) {
+      const win = findWindowAtPoint(pos.x, pos.y, windowListRef.current);
+      const prev = hoveredWindowRef.current;
+      // 只有窗口变化时才重绘
+      if (win !== prev) {
+        hoveredWindowRef.current = win;
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = requestAnimationFrame(drawFrame);
+      }
+    }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     // 控制点拖拽结束
     if (activeHandle.current) {
       activeHandle.current = null;
@@ -383,6 +499,29 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 
     if (!isDragging.current) return;
     isDragging.current = false;
+
+    // 如果没有发生真实拖拽（纯点击），则自动框选鼠标下方的窗口
+    if (!hasDraggedRef.current) {
+      const pos = getCanvasPos(e);
+      const win = findWindowAtPoint(pos.x, pos.y, windowListRef.current);
+      if (win) {
+        const sel: Selection = {
+          h: win.height,
+          w: win.width,
+          x: win.x,
+          y: win.y,
+        };
+        currentSel.current = sel;
+        hoveredWindowRef.current = null;
+        drawFrame();
+        onConfirm(sel);
+        return;
+      }
+      // 点击空白区域：清空选区
+      currentSel.current = { h: 0, w: 0, x: 0, y: 0 };
+      drawFrame();
+      return;
+    }
 
     const { h, w, x, y } = currentSel.current;
     const normSel = normalizeSelection(x, y, w, h);
@@ -445,6 +584,10 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     }
 
     if (e.metaKey && isInsideSel(pos.x, pos.y)) return "grab";
+
+    // 悬停在窗口上时显示 pointer
+    if (w === 0 && h === 0 && hoveredWindowRef.current) return "pointer";
+
     return "crosshair";
   };
 

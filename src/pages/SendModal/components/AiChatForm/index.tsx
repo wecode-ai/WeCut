@@ -2,7 +2,6 @@ import { Button, Form, Input, notification, Space, Tag } from "antd";
 import { isString } from "es-toolkit/compat";
 import { t } from "i18next";
 import { useEffect, useRef, useState } from "react";
-import LocalImage from "@/components/LocalImage";
 import UnoIcon from "@/components/UnoIcon";
 import {
   closeCurrentSendModal,
@@ -14,6 +13,7 @@ import type { DatabaseSchemaHistory } from "@/types/database";
 import { DEFAULTS } from "@/utils/envConfig";
 import { isImage } from "@/utils/is";
 import { handleAiChatSend } from "@/utils/send";
+import ImagePreviewWithOcr from "../ImagePreviewWithOcr";
 
 const { TextArea } = Input;
 
@@ -25,13 +25,12 @@ interface FormFields {
 const isAiChatConfigValid = (
   config: typeof clipboardStore.aiChatConfig,
 ): boolean => {
-  const isValid = !!(
+  return !!(
     config?.apiKey &&
     config.apiKey.trim() !== "" &&
     config?.baseUrl &&
     config.baseUrl.trim() !== ""
   );
-  return isValid;
 };
 
 // 快捷指令标签
@@ -87,14 +86,35 @@ const getTypeLabel = (type: string): string => {
   return labels[type] || type;
 };
 
+// 获取图片路径（从 item 中提取）
+const getImagePath = (item: DatabaseSchemaHistory): string | null => {
+  if (item.type === "image" && isString(item.value)) {
+    return item.value;
+  }
+  if (item.type === "files" && Array.isArray(item.value)) {
+    const files = item.value;
+    if (files.length === 1 && isString(files[0]) && isImage(files[0])) {
+      return files[0];
+    }
+  }
+  return null;
+};
+
 // 渲染预览内容
-const ContentPreview = ({ item }: { item?: DatabaseSchemaHistory | null }) => {
+const ContentPreview = ({
+  item,
+  onOcrResult,
+}: {
+  item?: DatabaseSchemaHistory | null;
+  onOcrResult: (text: string) => void;
+}) => {
   if (!item) return null;
 
   const type = item.type;
+  const imagePath = getImagePath(item);
 
-  // 图片类型：显示缩略图
-  if (type === "image" && isString(item.value)) {
+  // 图片类型：显示图片预览 + OCR
+  if (imagePath) {
     return (
       <div className="mb-3 rounded-md border border-gray-200 bg-gray-50 p-3">
         <div className="mb-2 flex items-center gap-2">
@@ -102,21 +122,18 @@ const ContentPreview = ({ item }: { item?: DatabaseSchemaHistory | null }) => {
           <span className="font-medium text-gray-700 text-sm">图片</span>
           <Tag className="text-xs">{getTypeLabel(type)}</Tag>
         </div>
-        <div className="flex justify-center">
-          <LocalImage
-            className="max-h-32 max-w-full rounded object-contain"
-            src={item.value}
-          />
-        </div>
+        <ImagePreviewWithOcr
+          imagePath={imagePath}
+          onOcrResult={onOcrResult}
+          showFillButton
+        />
       </div>
     );
   }
 
-  // 文件类型
+  // 文件类型（多文件）
   if (type === "files" && Array.isArray(item.value)) {
     const files = item.value;
-    const isSingleImage = files.length === 1 && isImage(files[0]);
-
     return (
       <div className="mb-3 rounded-md border border-gray-200 bg-gray-50 p-3">
         <div className="mb-2 flex items-center gap-2">
@@ -130,35 +147,26 @@ const ContentPreview = ({ item }: { item?: DatabaseSchemaHistory | null }) => {
           </span>
           <Tag className="text-xs">{getTypeLabel(type)}</Tag>
         </div>
-        {isSingleImage ? (
-          <div className="flex justify-center">
-            <LocalImage
-              className="max-h-32 max-w-full rounded object-contain"
-              src={files[0]}
-            />
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {files.slice(0, 4).map((file) => (
-              <div
-                className="flex items-center gap-2 truncate text-gray-600 text-sm"
-                key={file}
-              >
-                <UnoIcon
-                  className="flex-shrink-0"
-                  name="i-lucide:file-text"
-                  size={14}
-                />
-                <span className="truncate">{file}</span>
-              </div>
-            ))}
-            {files.length > 4 && (
-              <div className="text-gray-400 text-xs">
-                还有 {files.length - 4} 个文件...
-              </div>
-            )}
-          </div>
-        )}
+        <div className="space-y-1">
+          {files.slice(0, 4).map((file) => (
+            <div
+              className="flex items-center gap-2 truncate text-gray-600 text-sm"
+              key={file}
+            >
+              <UnoIcon
+                className="flex-shrink-0"
+                name="i-lucide:file-text"
+                size={14}
+              />
+              <span className="truncate">{file}</span>
+            </div>
+          ))}
+          {files.length > 4 && (
+            <div className="text-gray-400 text-xs">
+              还有 {files.length - 4} 个文件...
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -194,12 +202,10 @@ const AiChatForm = () => {
 
   // 加载剪贴板项目并监听数据变化
   useEffect(() => {
-    // 初始加载
     const currentItem = getCurrentSendItem();
     setItem(currentItem);
 
     const unlisten = listenSendModalData(() => {
-      // 数据变化时重新加载
       const newItem = getCurrentSendItem();
       setItem(newItem);
     });
@@ -212,6 +218,14 @@ const AiChatForm = () => {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // OCR 结果填入输入框
+  const handleOcrResult = (text: string) => {
+    const current = form.getFieldValue("extraMessage") || "";
+    const newValue = current ? `${current}\n${text}` : text;
+    form.setFieldValue("extraMessage", newValue);
+    inputRef.current?.focus();
+  };
 
   const handleSubmit = async () => {
     const storedConfig = clipboardStore.aiChatConfig;
@@ -263,12 +277,10 @@ const AiChatForm = () => {
       return;
     }
 
-    // 异步发送，不等待响应
     handleAiChatSend(item, currentConfig, values.extraMessage).catch(() => {
       // 错误已在 handleAiChatSend 内部处理
     });
 
-    // 立即关闭窗口，不等待接口响应
     await closeCurrentSendModal();
   };
 
@@ -305,37 +317,41 @@ const AiChatForm = () => {
   };
 
   return (
-    <Form
-      className="send-modal-form"
-      form={form}
-      initialValues={{ extraMessage: "" }}
-    >
-      {/* 剪贴板内容预览 */}
-      <ContentPreview item={item} />
+    <div className="ai-chat-form-container">
+      <div className="ai-chat-form-content">
+        <Form
+          className="send-modal-form"
+          form={form}
+          initialValues={{ extraMessage: "" }}
+        >
+          {/* 剪贴板内容预览 */}
+          <ContentPreview item={item} onOcrResult={handleOcrResult} />
 
-      <Form.Item className="mb-0!" name="extraMessage">
-        <TextArea
-          autoComplete="off"
-          placeholder={t("component.send_modal.hints.input_extra_message")}
-          ref={inputRef}
-          rows={4}
-        />
-      </Form.Item>
+          <Form.Item className="mb-0!" name="extraMessage">
+            <TextArea
+              autoComplete="off"
+              placeholder={t("component.send_modal.hints.input_extra_message")}
+              ref={inputRef}
+              rows={4}
+            />
+          </Form.Item>
 
-      {/* 快捷标签 */}
-      <div className="quick-tags">
-        {QUICK_TAGS.map((tag) => (
-          <span
-            className="quick-tag"
-            key={tag.key}
-            onClick={() => handleTagClick(tag.key)}
-          >
-            {tag.label}
-          </span>
-        ))}
+          {/* 快捷标签 */}
+          <div className="quick-tags">
+            {QUICK_TAGS.map((tag) => (
+              <span
+                className="quick-tag"
+                key={tag.key}
+                onClick={() => handleTagClick(tag.key)}
+              >
+                {tag.label}
+              </span>
+            ))}
+          </div>
+        </Form>
       </div>
 
-      {/* 底部按钮 */}
+      {/* 底部按钮（固定在底部） */}
       <div className="send-modal-actions">
         <Space>
           <Button onClick={handleCancel} size="small">
@@ -346,7 +362,7 @@ const AiChatForm = () => {
           </Button>
         </Space>
       </div>
-    </Form>
+    </div>
   );
 };
 

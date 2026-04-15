@@ -90,22 +90,22 @@ const Toolbar: React.FC<ToolbarProps> = ({
     border: active
       ? "1.5px solid rgba(255,255,255,0.45)"
       : "1.5px solid transparent",
-    borderRadius: 6,
+    borderRadius: 7,
     color: active ? "#ffffff" : "rgba(255,255,255,0.72)",
     cursor: "pointer",
     display: "flex",
-    height: 28,
+    height: 32,
     justifyContent: "center",
-    padding: "0 5px",
+    padding: "0 6px",
     transition: "all 0.13s",
-    width: 28,
+    width: 32,
   });
 
   const divider = (
     <div
       style={{
         background: "rgba(255,255,255,0.15)",
-        height: 18,
+        height: 20,
         margin: "0 3px",
         width: 1,
       }}
@@ -113,18 +113,18 @@ const Toolbar: React.FC<ToolbarProps> = ({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {/* ── 主工具栏 ── */}
       <div
         style={{
           alignItems: "center",
           background: "rgba(28,28,28,0.93)",
-          borderRadius: 10,
+          borderRadius: 11,
           boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
           display: "flex",
           flexDirection: "row",
           gap: 2,
-          padding: "4px 8px",
+          padding: "5px 10px",
           userSelect: "none",
           whiteSpace: "nowrap",
         }}
@@ -139,7 +139,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         >
           <UnoIcon
             name="i-lucide:undo-2"
-            size={14}
+            size={16}
             style={{
               color: canUndo
                 ? "rgba(255,255,255,0.8)"
@@ -151,6 +151,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         {divider}
 
         {/* 绘图工具 */}
+        {/* 绘图工具 */}
         {TOOLS.map(({ icon, key, title }) => (
           <button
             key={key}
@@ -159,10 +160,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
             title={title}
             type="button"
           >
-            <UnoIcon name={icon} size={14} />
+            <UnoIcon name={icon} size={16} />
           </button>
         ))}
-
         {divider}
 
         {/* 右侧操作按钮 */}
@@ -173,7 +173,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             title="保存"
             type="button"
           >
-            <UnoIcon name="i-lucide:download" size={14} />
+            <UnoIcon name="i-lucide:download" size={16} />
           </button>
         )}
         {/* OCR 提取文字 */}
@@ -184,12 +184,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
             title="OCR 提取文字"
             type="button"
           >
-            <UnoIcon name="i-lucide:scan-text" size={14} />
+            <UnoIcon name="i-lucide:scan-text" size={16} />
           </button>
         )}
         {!isPinned && onPin && (
           <button onClick={onPin} style={btnStyle()} title="钉住" type="button">
-            <UnoIcon name="i-lucide:pin" size={14} />
+            <UnoIcon name="i-lucide:pin" size={16} />
           </button>
         )}
         {isPinned && onCollapse && (
@@ -199,7 +199,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             title="收起"
             type="button"
           >
-            <UnoIcon name="i-lucide:chevron-up" size={14} />
+            <UnoIcon name="i-lucide:chevron-up" size={16} />
           </button>
         )}
 
@@ -216,7 +216,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             title="关闭 (Esc)"
             type="button"
           >
-            <UnoIcon name="i-lucide:x" size={15} />
+            <UnoIcon name="i-lucide:x" size={17} />
           </button>
         )}
         {/* 发送到 Wegent */}
@@ -227,7 +227,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             title="发送到 Wegent"
             type="button"
           >
-            <UnoIcon name="i-lucide:send" size={14} />
+            <UnoIcon name="i-lucide:send" size={16} />
           </button>
         )}
         {/* 复制（蓝勾） */}
@@ -243,7 +243,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             title="复制到剪贴板 (Enter)"
             type="button"
           >
-            <UnoIcon name="i-lucide:check" size={15} />
+            <UnoIcon name="i-lucide:check" size={17} />
           </button>
         )}
       </div>
@@ -254,12 +254,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
           style={{
             alignItems: "center",
             background: "rgba(28,28,28,0.93)",
-            borderRadius: 8,
+            borderRadius: 9,
             boxShadow: "0 4px 20px rgba(0,0,0,0.45)",
             display: "flex",
             flexDirection: "row",
             gap: 6,
-            padding: "4px 10px",
+            padding: "5px 12px",
             userSelect: "none",
           }}
         >
@@ -275,7 +275,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             >
               <UnoIcon
                 name="i-lucide:type"
-                size={12}
+                size={14}
                 style={{ color: "rgba(255,255,255,0.5)", flexShrink: 0 }}
               />
               <div
@@ -305,10 +305,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
                         fontSize === size ? "#ffffff" : "rgba(255,255,255,0.6)",
                       cursor: "pointer",
                       display: "flex",
-                      fontSize: 10,
-                      height: 22,
+                      fontSize: 11,
+                      height: 25,
                       justifyContent: "center",
-                      minWidth: 22,
+                      minWidth: 25,
                       padding: "0 3px",
                       transition: "all 0.13s",
                     }}
@@ -393,10 +393,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   borderRadius: "50%",
                   cursor: "pointer",
                   flexShrink: 0,
-                  height: 16,
+                  height: 18,
                   padding: 0,
                   transition: "transform 0.1s, border 0.1s",
-                  width: 16,
+                  width: 18,
                 }}
                 title={color}
                 type="button"

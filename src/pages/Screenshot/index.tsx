@@ -24,6 +24,7 @@ type Phase = "idle" | "selecting" | "editing";
 const Screenshot = () => {
   const [phase, setPhase] = useState<Phase>("idle");
   const [bgImage, setBgImage] = useState<string>("");
+  const [monitorIndex, setMonitorIndex] = useState<number>(0);
   const [selection, setSelection] = useState<Selection>({
     h: 0,
     w: 0,
@@ -44,6 +45,7 @@ const Screenshot = () => {
   const resetState = useCallback(() => {
     setPhase("idle");
     setBgImage("");
+    setMonitorIndex(0);
     setSelection({ h: 0, w: 0, x: 0, y: 0 });
     setPinned(false);
   }, []);
@@ -58,6 +60,7 @@ const Screenshot = () => {
     getScreenshotData(label).then((data) => {
       if (data) {
         setBgImage(data.image_data_url);
+        setMonitorIndex(data.monitor_index ?? 0);
         setPhase("selecting");
       }
     });
@@ -71,6 +74,7 @@ const Screenshot = () => {
     getScreenshotData(windowLabel).then((data) => {
       if (data) {
         setBgImage(data.image_data_url);
+        setMonitorIndex(data.monitor_index ?? 0);
         setPhase("selecting");
       }
     });
@@ -91,6 +95,7 @@ const Screenshot = () => {
     // 重置所有状态
     setPhase("idle");
     setBgImage("");
+    setMonitorIndex(0);
     setSelection({ h: 0, w: 0, x: 0, y: 0 });
     setPinned(false);
     try {
@@ -202,6 +207,7 @@ const Screenshot = () => {
       {phase === "selecting" && bgImage && (
         <SelectionOverlay
           bgImage={bgImage}
+          monitorIndex={monitorIndex}
           onCancel={handleSelectionCancel}
           onConfirm={handleSelectionConfirm}
         />

@@ -313,17 +313,56 @@ const Editor: React.FC<EditorProps> = ({
   const [toolbarLeft, setToolbarLeft] = useState<number>(
     canvasOffsetX + selection.w,
   );
+  // 工具栏垂直偏移（相对于选区容器的 top）
+  // 正值 = 选区下方，负值 = 选区上方（外部），或内部偏移（内部模式）
+  const [toolbarTop, setToolbarTop] = useState<number>(currentSel.h + 10);
+
   useEffect(() => {
     if (pinned) return;
-    const id = requestAnimationFrame(() => {
-      const toolbarW = toolbarRef.current?.scrollWidth ?? 0;
-      if (toolbarW === 0) return;
-      const idealLeft = canvasOffsetX + selection.w - toolbarW;
-      const minLeft = 8 - selection.x;
-      setToolbarLeft(Math.max(idealLeft, minLeft));
+    // 用两帧确保 DOM 已渲染，toolbarRef 尺寸已稳定
+    let id1: number;
+    const id0 = requestAnimationFrame(() => {
+      id1 = requestAnimationFrame(() => {
+        const toolbarW = toolbarRef.current?.scrollWidth ?? 0;
+        const toolbarH = toolbarRef.current?.scrollHeight ?? 0;
+        if (toolbarW === 0) return;
+
+        // 水平位置（外部模式）：右对齐选区右边缘，但不超出屏幕左右边界
+        const idealLeft = canvasOffsetX + selection.w - toolbarW;
+        const minLeft = 8 - selection.x;
+        const maxLeft = window.innerWidth - selection.x - toolbarW - 8;
+        const clampedLeft = Math.min(Math.max(idealLeft, minLeft), maxLeft);
+
+        // 垂直位置：检测工具栏是否会与 Dock/任务栏冲突
+        // screen.availHeight 是不含 Dock/任务栏的可用屏幕高度（macOS 会减去 Dock 高度）
+        const toolbarBottomAbs = selection.y + selection.h + 10 + toolbarH;
+        const availBottom = screen.availHeight - 8;
+
+        if (toolbarBottomAbs <= availBottom) {
+          // 下方空间足够，显示在选区下方（外部）
+          setToolbarLeft(clampedLeft);
+          setToolbarTop(currentSel.h + 10);
+        } else {
+          // 下方空间不足，检查上方是否有足够空间
+          const toolbarTopAbs = selection.y - 10 - toolbarH;
+          if (toolbarTopAbs >= 0) {
+            // 上方有足够空间，显示在选区上方（外部）
+            setToolbarLeft(clampedLeft);
+            setToolbarTop(-(10 + toolbarH));
+          } else {
+            // 上下都不够，显示在选区内部右上角
+            // 内部右上角：距右边缘 8px，距上边缘 8px
+            setToolbarLeft(canvasOffsetX + selection.w - toolbarW - 8);
+            setToolbarTop(8);
+          }
+        }
+      });
     });
-    return () => cancelAnimationFrame(id);
-  }, [pinned, selection, canvasOffsetX, activeTool]);
+    return () => {
+      cancelAnimationFrame(id0);
+      cancelAnimationFrame(id1);
+    };
+  }, [pinned, selection, canvasOffsetX, activeTool, currentSel.h]);
 
   const menuLeft = canvasOffsetX + selection.w / 2;
   const ocrOverlayVisible = ocrBlocks !== null;
@@ -480,7 +519,9 @@ const Editor: React.FC<EditorProps> = ({
           style={{
             left: pinned ? menuLeft : toolbarLeft,
             position: "absolute",
-            top: currentSel.h + 10,
+            // pinned 模式固定在选区下方；非 pinned 模式使用 toolbarTop
+            // toolbarTop 为负值时工具栏显示在选区上方（避免与 Dock 冲突）
+            top: pinned ? currentSel.h + 10 : toolbarTop,
             transform: pinned ? "translateX(-50%)" : "none",
             zIndex: 30,
           }}

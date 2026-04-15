@@ -10,6 +10,244 @@ use tauri::{
 };
 use xcap::Monitor;
 
+/// 屏幕上单个窗口的信息（逻辑像素坐标）
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WindowInfo {
+    pub title: String,
+    pub app_name: String,
+    /// 逻辑像素 x 坐标（相对于所在显示器左上角）
+    pub x: f64,
+    /// 逻辑像素 y 坐标（相对于所在显示器左上角）
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+/// 获取当前屏幕上所有可见窗口的位置和大小（macOS 实现，纯 FFI）
+#[cfg(target_os = "macos")]
+#[tauri::command]
+pub async fn get_window_list(monitor_index: usize) -> Result<Vec<WindowInfo>, String> {
+    use core_graphics::display::CGDisplay;
+    use std::ffi::{c_void, CStr};
+    use std::os::raw::{c_char, c_int};
+
+    // ── 原始 CF/CG 类型别名 ──────────────────────────────────────────────
+    type CFTypeRef = *const c_void;
+    type CFArrayRef = *const c_void;
+    type CFDictionaryRef = *const c_void;
+    type CFStringRef = *const c_void;
+    type CFNumberRef = *const c_void;
+    type CFIndex = isize;
+    type CGWindowID = u32;
+    type CGWindowListOption = u32;
+
+    const K_CG_WINDOW_LIST_OPTION_ON_SCREEN_ONLY: CGWindowListOption = 1 << 0;
+    const K_CG_NULL_WINDOW_ID: CGWindowID = 0;
+    const K_CF_NUMBER_FLOAT64_TYPE: c_int = 13;
+    const K_CF_NUMBER_S_INT32_TYPE: c_int = 3;
+
+    extern "C" {
+        fn CGWindowListCopyWindowInfo(
+            option: CGWindowListOption,
+            relative_to_window: CGWindowID,
+        ) -> CFArrayRef;
+
+        fn CFArrayGetCount(array: CFArrayRef) -> CFIndex;
+        fn CFArrayGetValueAtIndex(array: CFArrayRef, idx: CFIndex) -> CFTypeRef;
+
+        fn CFDictionaryGetValue(dict: CFDictionaryRef, key: CFStringRef) -> CFTypeRef;
+
+        fn CFStringCreateWithCString(
+            alloc: *const c_void,
+            c_str: *const c_char,
+            encoding: u32,
+        ) -> CFStringRef;
+        fn CFStringGetCString(
+            the_string: CFStringRef,
+            buffer: *mut c_char,
+            buffer_size: CFIndex,
+            encoding: u32,
+        ) -> bool;
+        fn CFStringGetLength(the_string: CFStringRef) -> CFIndex;
+
+        fn CFNumberGetValue(
+            number: CFNumberRef,
+            the_type: c_int,
+            value_ptr: *mut c_void,
+        ) -> bool;
+
+        fn CFRelease(cf: CFTypeRef);
+    }
+
+    // UTF-8 encoding constant
+    const K_CF_STRING_ENCODING_UTF8: u32 = 0x08000100;
+
+    // 辅助：从 C 字符串字面量创建 CFStringRef（调用方负责 CFRelease）
+    unsafe fn make_cf_string(s: &str) -> CFStringRef {
+        let c = std::ffi::CString::new(s).unwrap();
+        CFStringCreateWithCString(std::ptr::null(), c.as_ptr(), K_CF_STRING_ENCODING_UTF8)
+    }
+
+    // 辅助：从 CFStringRef 读取 Rust String
+    unsafe fn cf_string_to_rust(cf: CFStringRef) -> Option<String> {
+        if cf.is_null() {
+            return None;
+        }
+        let len = CFStringGetLength(cf);
+        let buf_size = len * 4 + 1; // UTF-8 最多 4 字节/字符
+        let mut buf: Vec<c_char> = vec![0; buf_size as usize];
+        if CFStringGetCString(cf, buf.as_mut_ptr(), buf_size, K_CF_STRING_ENCODING_UTF8) {
+            let cstr = CStr::from_ptr(buf.as_ptr());
+            Some(cstr.to_string_lossy().into_owned())
+        } else {
+            None
+        }
+    }
+
+    // 辅助：从 CFDictionary 中读取 f64 数值
+    unsafe fn dict_get_f64(dict: CFDictionaryRef, key: &str) -> Option<f64> {
+        let k = make_cf_string(key);
+        let val = CFDictionaryGetValue(dict, k);
+        CFRelease(k);
+        if val.is_null() {
+            return None;
+        }
+        let mut out: f64 = 0.0;
+        if CFNumberGetValue(val, K_CF_NUMBER_FLOAT64_TYPE, &mut out as *mut f64 as *mut c_void) {
+            Some(out)
+        } else {
+            None
+        }
+    }
+
+    // 辅助：从 CFDictionary 中读取 i32 数值
+    unsafe fn dict_get_i32(dict: CFDictionaryRef, key: &str) -> Option<i32> {
+        let k = make_cf_string(key);
+        let val = CFDictionaryGetValue(dict, k);
+        CFRelease(k);
+        if val.is_null() {
+            return None;
+        }
+        let mut out: i32 = 0;
+        if CFNumberGetValue(val, K_CF_NUMBER_S_INT32_TYPE, &mut out as *mut i32 as *mut c_void) {
+            Some(out)
+        } else {
+            None
+        }
+    }
+
+    // 辅助：从 CFDictionary 中读取 CFString 字段
+    unsafe fn dict_get_string(dict: CFDictionaryRef, key: &str) -> String {
+        let k = make_cf_string(key);
+        let val = CFDictionaryGetValue(dict, k);
+        CFRelease(k);
+        if val.is_null() {
+            return String::new();
+        }
+        cf_string_to_rust(val).unwrap_or_default()
+    }
+
+    // ── 获取目标显示器边界（逻辑像素） ──────────────────────────────────
+    let displays = CGDisplay::active_displays()
+        .map_err(|e| format!("获取显示器列表失败: {:?}", e))?;
+    let display_id = displays
+        .get(monitor_index)
+        .copied()
+        .ok_or_else(|| format!("显示器索引 {} 不存在", monitor_index))?;
+    let display = CGDisplay::new(display_id);
+    let display_bounds = display.bounds();
+
+    // ── 调用 CGWindowListCopyWindowInfo ──────────────────────────────────
+    let array = unsafe {
+        CGWindowListCopyWindowInfo(K_CG_WINDOW_LIST_OPTION_ON_SCREEN_ONLY, K_CG_NULL_WINDOW_ID)
+    };
+    if array.is_null() {
+        return Ok(vec![]);
+    }
+
+    let count = unsafe { CFArrayGetCount(array) };
+    let mut windows: Vec<WindowInfo> = Vec::new();
+
+    for i in 0..count {
+        let item = unsafe { CFArrayGetValueAtIndex(array, i) };
+        if item.is_null() {
+            continue;
+        }
+        let dict = item as CFDictionaryRef;
+
+        // 只处理 layer == 0 的普通应用窗口
+        let layer = unsafe { dict_get_i32(dict, "kCGWindowLayer").unwrap_or(1) };
+        if layer != 0 {
+            continue;
+        }
+
+        // 获取 kCGWindowBounds（子字典）
+        let bounds_key = unsafe { make_cf_string("kCGWindowBounds") };
+        let bounds_val = unsafe { CFDictionaryGetValue(dict, bounds_key) };
+        unsafe { CFRelease(bounds_key) };
+        if bounds_val.is_null() {
+            continue;
+        }
+        let bounds_dict = bounds_val as CFDictionaryRef;
+
+        let win_x = unsafe { dict_get_f64(bounds_dict, "X").unwrap_or(0.0) };
+        let win_y = unsafe { dict_get_f64(bounds_dict, "Y").unwrap_or(0.0) };
+        let win_w = unsafe { dict_get_f64(bounds_dict, "Width").unwrap_or(0.0) };
+        let win_h = unsafe { dict_get_f64(bounds_dict, "Height").unwrap_or(0.0) };
+
+        // 过滤太小的窗口
+        if win_w < 50.0 || win_h < 50.0 {
+            continue;
+        }
+
+        // 转换为相对于目标显示器的坐标
+        let rel_x = win_x - display_bounds.origin.x;
+        let rel_y = win_y - display_bounds.origin.y;
+
+        // 只保留在目标显示器范围内的窗口
+        if rel_x + win_w <= 0.0
+            || rel_y + win_h <= 0.0
+            || rel_x >= display_bounds.size.width
+            || rel_y >= display_bounds.size.height
+        {
+            continue;
+        }
+
+        // 裁剪到显示器范围内
+        let clipped_x = rel_x.max(0.0);
+        let clipped_y = rel_y.max(0.0);
+        let clipped_w = (rel_x + win_w).min(display_bounds.size.width) - clipped_x;
+        let clipped_h = (rel_y + win_h).min(display_bounds.size.height) - clipped_y;
+
+        if clipped_w < 10.0 || clipped_h < 10.0 {
+            continue;
+        }
+
+        let app_name = unsafe { dict_get_string(dict, "kCGWindowOwnerName") };
+        let title = unsafe { dict_get_string(dict, "kCGWindowName") };
+
+        windows.push(WindowInfo {
+            title,
+            app_name,
+            x: clipped_x,
+            y: clipped_y,
+            width: clipped_w,
+            height: clipped_h,
+        });
+    }
+
+    unsafe { CFRelease(array) };
+
+    Ok(windows)
+}
+
+/// 非 macOS 平台的占位实现
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub async fn get_window_list(_monitor_index: usize) -> Result<Vec<WindowInfo>, String> {
+    Ok(vec![])
+}
+
 /// macOS Vision framework OCR 实现
 /// 返回 JSON 字符串，格式为：
 /// [{"text":"...", "x":0.1, "y":0.1, "w":0.3, "h":0.05}, ...]
@@ -107,6 +345,9 @@ pub struct PinData {
     pub w: f64,
     pub h: f64,
     pub label: String,
+    /// 截图时对应的显示器索引（仅截图窗口使用，pin 窗口为 0）
+    #[serde(default)]
+    pub monitor_index: usize,
 }
 
 fn pin_store_insert(label: String, data: PinData) {
@@ -447,6 +688,7 @@ pub async fn show_screenshot_window(
             w: width as f64,
             h: height as f64,
             label: label.clone(),
+            monitor_index,
         },
     );
 
@@ -554,6 +796,7 @@ pub async fn create_pin_window(
             w,
             h,
             label: label.clone(),
+            monitor_index: 0,
         },
     );
 
