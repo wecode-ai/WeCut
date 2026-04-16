@@ -1,5 +1,6 @@
 import { proxy } from "valtio";
 import type { GlobalStore } from "@/types/store";
+import { isMac } from "@/utils/is";
 
 export const globalStore = proxy<GlobalStore>({
   app: {
@@ -16,29 +17,29 @@ export const globalStore = proxy<GlobalStore>({
 
   env: {},
 
+  screenshot: {
+    defaultAction: "menu",
+    saveFormat: "png",
+    saveToHistory: true,
+    shortcut: isMac ? "Command+Control+KeyA" : "Control+Alt+KeyA",
+  },
+
   shortcut: {
     clipboard: "Alt+C",
     copyFilePath: "",
     pastePlain: "",
     preference: "Alt+X",
-    screenshot: "CmdOrCtrl+Shift+X",
     quickPaste: {
       enable: false,
       value: "Command+Shift",
     },
+    screenshot: isMac ? "Command+Control+KeyA" : "Control+Alt+KeyA",
     // 兼容旧配置
     send: "",
     wegent: {
       aiChat: "",
       workQueue: "",
     },
-  },
-
-  screenshot: {
-    defaultAction: "menu",
-    saveFormat: "png",
-    saveToHistory: true,
-    shortcut: "CmdOrCtrl+Shift+X",
   },
 
   update: {

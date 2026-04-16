@@ -1,10 +1,19 @@
 import { invoke } from "@tauri-apps/api/core";
+import { join } from "@tauri-apps/api/path";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { save } from "@tauri-apps/plugin-dialog";
-import { remove, writeFile } from "@tauri-apps/plugin-fs";
+import { mkdir, remove, writeFile } from "@tauri-apps/plugin-fs";
 import {
   getDefaultSaveImagePath,
   writeImage,
 } from "tauri-plugin-clipboard-x-api";
+import {
+  mapScreenshotPreviewPayload,
+  type ScreenshotPreviewPayload,
+  type ScreenshotPreviewPayloadRaw,
+  type ScreenshotSelectionRect,
+  toCropRequest,
+} from "../utils/session-contract";
 
 export interface MonitorInfo {
   id: number;
@@ -16,13 +25,7 @@ export interface MonitorInfo {
   y: number;
 }
 
-export interface ScreenshotData {
-  image_data_url: string;
-  w: number;
-  h: number;
-  label: string;
-  monitor_index: number;
-}
+export type ScreenshotData = ScreenshotPreviewPayload;
 
 /**
  * Capture a screenshot of the specified monitor and return it as a base64 data URL.
@@ -47,16 +50,18 @@ export const getMonitors = async (): Promise<MonitorInfo[]> => {
  * Returns the window label (e.g. "screenshot-1").
  */
 export const showScreenshotWindow = async (
-  monitorIndex: number,
+  monitorId: number,
 ): Promise<string> => {
-  return await invoke<string>("show_screenshot_window", { monitorIndex });
+  return await invoke<string>("show_screenshot_window", { monitorId });
 };
 
 /**
  * Close/hide the screenshot window with the given label.
  */
 export const hideScreenshotWindow = async (label?: string): Promise<void> => {
-  await invoke("hide_screenshot_window", { label: label ?? null });
+  await invoke("hide_screenshot_window", {
+    label: label ?? getCurrentWindow().label,
+  });
 };
 
 /**
@@ -65,7 +70,28 @@ export const hideScreenshotWindow = async (label?: string): Promise<void> => {
 export const getScreenshotData = async (
   label: string,
 ): Promise<ScreenshotData | null> => {
-  return await invoke<ScreenshotData | null>("get_screenshot_data", { label });
+  const raw = await invoke<ScreenshotPreviewPayloadRaw | null>(
+    "get_screenshot_data",
+    {
+      label,
+    },
+  );
+  if (!raw) return null;
+  return mapScreenshotPreviewPayload(raw);
+};
+
+export const getScreenshotCrop = async (
+  label: string,
+  selection: ScreenshotSelectionRect,
+): Promise<string> => {
+  const crop = toCropRequest(selection);
+  return await invoke<string>("get_screenshot_crop", {
+    h: crop.h,
+    label,
+    w: crop.w,
+    x: crop.x,
+    y: crop.y,
+  });
 };
 
 /**
@@ -175,12 +201,12 @@ export interface WindowInfo {
 
 /**
  * 获取当前屏幕上所有可见窗口的位置和大小。
- * monitorIndex: 目标显示器索引（与 showScreenshotWindow 保持一致）
+ * monitorId: 目标显示器 ID（与 showScreenshotWindow 保持一致）
  */
 export const getWindowList = async (
-  monitorIndex: number,
+  monitorId: number,
 ): Promise<WindowInfo[]> => {
-  return await invoke<WindowInfo[]>("get_window_list", { monitorIndex });
+  return await invoke<WindowInfo[]>("get_window_list", { monitorId });
 };
 
 /** OCR 识别结果中单个文字块的结构 */
@@ -222,7 +248,8 @@ export const copyImageToClipboard = async (dataUrl: string): Promise<void> => {
   }
 
   const dir = (await getDefaultSaveImagePath()) as string;
-  const tmpPath = `${dir}/_screenshot_tmp_${Date.now()}.png`;
+  await mkdir(dir, { recursive: true });
+  const tmpPath = await join(dir, `_screenshot_tmp_${Date.now()}.png`);
   await writeFile(tmpPath, bytes);
 
   try {

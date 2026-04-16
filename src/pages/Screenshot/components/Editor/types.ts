@@ -7,6 +7,11 @@ export interface Selection {
   h: number;
 }
 
+export interface ImageLogicalSize {
+  w: number;
+  h: number;
+}
+
 // 8 个控制点类型
 export type HandleType = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
 
@@ -75,6 +80,8 @@ export interface EditorProps {
   bgImage: string;
   /** bgImage 已经是裁剪好的选区图片（不需要再用 selection.x/y 偏移裁剪） */
   bgImageCropped?: boolean;
+  /** bgImage 为全屏图时的逻辑尺寸，用于正确映射选区到源图像素 */
+  bgImageLogicalSize?: ImageLogicalSize;
   selection: Selection;
   onClose: () => void;
   onMove?: (sel: Selection) => void;

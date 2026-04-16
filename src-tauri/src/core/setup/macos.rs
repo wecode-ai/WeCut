@@ -33,7 +33,13 @@ pub fn platform(
 
     let _ = app_handle.set_dock_visibility(false);
 
-    let panel = main_window.to_panel::<NsPanel>().unwrap();
+    let panel = match main_window.to_panel::<NsPanel>() {
+        Ok(panel) => panel,
+        Err(error) => {
+            log::error!("[nspanel] failed to convert main window to panel: {}", error);
+            return;
+        }
+    };
 
     panel.set_level(PanelLevel::Dock.value());
 
@@ -51,38 +57,56 @@ pub fn platform(
 
     let window = main_window.clone();
     handler.window_did_become_key(move |_| {
-        let target = EventTarget::labeled(MAIN_WINDOW_LABEL);
-
-        let _ = window.emit_to(target, WINDOW_FOCUS_EVENT, true);
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let target = EventTarget::labeled(MAIN_WINDOW_LABEL);
+            let _ = window.emit_to(target, WINDOW_FOCUS_EVENT, true);
+        }))
+        .map_err(|_| {
+            log::error!("[nspanel] panic in window_did_become_key callback");
+        });
     });
 
     let window = main_window.clone();
     handler.window_did_resign_key(move |_| {
-        let target = EventTarget::labeled(MAIN_WINDOW_LABEL);
-
-        let _ = window.emit_to(target, WINDOW_BLUR_EVENT, true);
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let target = EventTarget::labeled(MAIN_WINDOW_LABEL);
+            let _ = window.emit_to(target, WINDOW_BLUR_EVENT, true);
+        }))
+        .map_err(|_| {
+            log::error!("[nspanel] panic in window_did_resign_key callback");
+        });
     });
 
     let window = main_window.clone();
     handler.window_did_resize(move |_| {
-        let target = EventTarget::labeled(MAIN_WINDOW_LABEL);
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let target = EventTarget::labeled(MAIN_WINDOW_LABEL);
 
-        if let Ok(position) = window.outer_position() {
-            let _ = window.emit_to(target.clone(), WINDOW_MOVED_EVENT, position);
-        }
+            if let Ok(position) = window.outer_position() {
+                let _ = window.emit_to(target.clone(), WINDOW_MOVED_EVENT, position);
+            }
 
-        if let Ok(size) = window.inner_size() {
-            let _ = window.emit_to(target, WINDOW_RESIZED_EVENT, size);
-        }
+            if let Ok(size) = window.inner_size() {
+                let _ = window.emit_to(target, WINDOW_RESIZED_EVENT, size);
+            }
+        }))
+        .map_err(|_| {
+            log::error!("[nspanel] panic in window_did_resize callback");
+        });
     });
 
     let window = main_window.clone();
     handler.window_did_move(move |_| {
-        let target = EventTarget::labeled(MAIN_WINDOW_LABEL);
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let target = EventTarget::labeled(MAIN_WINDOW_LABEL);
 
-        if let Ok(position) = window.outer_position() {
-            let _ = window.emit_to(target.clone(), WINDOW_MOVED_EVENT, position);
-        }
+            if let Ok(position) = window.outer_position() {
+                let _ = window.emit_to(target.clone(), WINDOW_MOVED_EVENT, position);
+            }
+        }))
+        .map_err(|_| {
+            log::error!("[nspanel] panic in window_did_move callback");
+        });
     });
 
     panel.set_event_handler(Some(handler.as_ref()));
