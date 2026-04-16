@@ -160,6 +160,41 @@
   "context_menu": {
     "set_as_expansion": "设为快捷粘贴"
   },
+  "onboarding": {
+    "complete": {
+      "button": "完成",
+      "hint": "请先完成所有权限授权"
+    },
+    "permission": {
+      "accessibility": {
+        "description": "用于自动粘贴、监听全局快捷键",
+        "title": "辅助功能（Accessibility）"
+      },
+      "authorize": "去授权",
+      "authorized": "已授权",
+      "full_disk_access": {
+        "description": "用于读取受保护路径下的文件内容",
+        "title": "完全磁盘访问（Full Disk Access）"
+      },
+      "screen_recording": {
+        "description": "用于截图功能",
+        "title": "屏幕录制（Screen Recording）"
+      }
+    },
+    "permissions": {
+      "description": "WeCut 需要以下权限才能正常运行，请逐一完成授权。",
+      "title": "macOS 权限授权"
+    },
+    "privacy": {
+      "description": "WeCut 是一个完全开源的项目，所有数据仅存储在您本地设备上，我们不会收集任何用户数据或隐私信息。",
+      "view_source": "查看源代码"
+    },
+    "wegent": {
+      "description": "配置 Wegent Key 后，可使用 AI 剪切板助手、工作队列等增强功能。可稍后在偏好设置中配置。",
+      "goto_preference": "前往偏好设置配置",
+      "title": "配置 Wegent Key（可选）"
+    }
+  },
   "preference": {
     "about": {
       "about_software": {

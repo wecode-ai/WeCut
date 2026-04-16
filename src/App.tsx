@@ -48,6 +48,11 @@ const App = () => {
 
     // 生成 antd 的颜色变量
     generateColorVars();
+
+    // 若未完成引导，跳转到引导页
+    if (!globalStore.app.hasCompletedOnboarding) {
+      router.navigate("/onboarding");
+    }
   });
 
   // 监听语言的变化

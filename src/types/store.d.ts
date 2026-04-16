@@ -17,6 +17,7 @@ export interface GlobalStore {
     silentStart: boolean;
     showMenubarIcon: boolean;
     showTaskbarIcon: boolean;
+    hasCompletedOnboarding: boolean;
   };
 
   // 外观设置

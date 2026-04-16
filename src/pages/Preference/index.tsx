@@ -11,6 +11,7 @@ import UpdateApp from "@/components/UpdateApp";
 import { LISTEN_KEY } from "@/constants";
 import { useRegister } from "@/hooks/useRegister";
 import { useSubscribe } from "@/hooks/useSubscribe";
+import { useTauriListen } from "@/hooks/useTauriListen";
 import { useTray } from "@/hooks/useTray";
 import { isAutostart } from "@/plugins/autostart";
 import { showWindow, toggleWindowVisible } from "@/plugins/window";
@@ -35,6 +36,13 @@ const Preference = () => {
   const { app, shortcut, appearance } = useSnapshot(globalStore);
   const [activeKey, setActiveKey] = useState("clipboard");
   const contentRef = useRef<HTMLElement>(null);
+
+  // 监听来自其它窗口的跳转指令（如 Onboarding 跳转到指定 tab）
+  useTauriListen<string>(LISTEN_KEY.PREFERENCE_NAVIGATE, ({ payload }) => {
+    if (payload) {
+      setActiveKey(payload);
+    }
+  });
 
   const { createTray } = useTray();
 

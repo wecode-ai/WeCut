@@ -7,6 +7,7 @@ export const globalStore = proxy<GlobalStore>({
     showMenubarIcon: true,
     showTaskbarIcon: false,
     silentStart: false,
+    hasCompletedOnboarding: false,
   },
 
   appearance: {
