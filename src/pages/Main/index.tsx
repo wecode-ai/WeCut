@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import { useEventEmitter, useKeyPress, useMount, useReactive } from "ahooks";
 import type { EventEmitter } from "ahooks/lib/useEventEmitter";
 import { notification } from "antd";
@@ -35,6 +34,7 @@ import type {
 } from "@/types/database";
 import type { Store } from "@/types/store";
 import { deepAssign } from "@/utils/object";
+import { triggerScreenshotFromCursor } from "@/utils/screenshot-trigger";
 import DockMode from "./components/DockMode";
 import StandardMode from "./components/StandardMode";
 
@@ -133,9 +133,7 @@ const Main = () => {
   // 注册截图全局快捷键
   const triggerScreenshot = useCallback(async () => {
     try {
-      // 先隐藏主窗口，再触发截图（screenshot 窗口已预创建，无需等待）
-      await invoke("plugin:eco-window|hide_window");
-      await invoke("show_screenshot_window", { monitorIndex: 0 });
+      await triggerScreenshotFromCursor();
     } catch {
       // Screenshot shortcut failed
     }

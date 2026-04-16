@@ -1,4 +1,14 @@
 import { useEffect, useRef } from "react";
+import {
+  getCanvasLogicalPoint,
+  getCanvasLogicalSize,
+  getCanvasPixelSize,
+} from "@/utils/canvas-hidpi";
+import {
+  logPerf,
+  SCREENSHOT_PERF_ACCEPTANCE_TARGETS,
+  SCREENSHOT_PERF_METRICS,
+} from "@/utils/perf-log";
 import type { WindowInfo } from "../../hooks/useScreenshot";
 import { getWindowList } from "../../hooks/useScreenshot";
 
@@ -13,8 +23,8 @@ interface SelectionOverlayProps {
   bgImage: string;
   onConfirm: (sel: Selection) => void;
   onCancel: () => void;
-  /** 当前显示器索引，用于获取窗口列表 */
-  monitorIndex?: number;
+  /** 当前显示器 ID，用于获取窗口列表 */
+  monitorId?: number;
 }
 
 // 8 个控制点的类型
@@ -109,7 +119,7 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   bgImage,
   onConfirm,
   onCancel,
-  monitorIndex = 0,
+  monitorId = 0,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
@@ -132,11 +142,24 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
   const hoveredWindowRef = useRef<WindowInfo | null>(null);
   // 是否已经开始拖拽（区分点击和拖拽）
   const hasDraggedRef = useRef(false);
+  const imageLoadStartedAtRef = useRef(0);
+  const imageLoadedAtRef = useRef(0);
+  const firstFrameLoggedRef = useRef(false);
 
   // Load bg image once
   useEffect(() => {
     const img = new Image();
+    imageLoadStartedAtRef.current = performance.now();
+    firstFrameLoggedRef.current = false;
     img.onload = () => {
+      imageLoadedAtRef.current = performance.now();
+      logPerf("[screenshot][ui] overlay:bg_image_loaded", {
+        elapsedMs: Math.round(
+          imageLoadedAtRef.current - imageLoadStartedAtRef.current,
+        ),
+        naturalHeight: img.naturalHeight,
+        naturalWidth: img.naturalWidth,
+      });
       bgImageEl.current = img;
       drawFrame();
     };
@@ -151,30 +174,46 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 
   // 加载窗口列表
   useEffect(() => {
-    getWindowList(monitorIndex)
+    getWindowList(monitorId)
       .then((list) => {
         windowListRef.current = list;
       })
       .catch(() => {
         windowListRef.current = [];
       });
-  }, [monitorIndex]);
+  }, [monitorId]);
 
   const getCanvas = (): HTMLCanvasElement | null => canvasRef.current;
   const getCtx = (): CanvasRenderingContext2D | null =>
     getCanvas()?.getContext("2d") ?? null;
+  const getDpr = () => window.devicePixelRatio || 1;
+  const getCanvasLogicalBounds = () => {
+    const canvas = getCanvas();
+    if (!canvas) return { height: 0, width: 0 };
+    return getCanvasLogicalSize(canvas.width, canvas.height, getDpr());
+  };
 
   const drawFrame = () => {
     const canvas = getCanvas();
     const ctx = getCtx();
     if (!canvas || !ctx || !bgImageEl.current) return;
 
-    const { width, height } = canvas;
+    const dpr = getDpr();
+    const { height, width } = getCanvasLogicalBounds();
     const { h, w, x, y } = currentSel.current;
-    // bgImage 是物理像素截图，canvas 是逻辑像素尺寸，需要乘以 dpr 从物理图中取正确区域
-    const dpr = window.devicePixelRatio || 1;
+
+    // 保存当前变换矩阵
+    ctx.save();
+
+    // 清除整个 Canvas（使用物理像素坐标）
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 设置 DPR 缩放，确保绘制使用逻辑坐标但映射到物理像素
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     // Draw background (物理像素图缩放到逻辑像素 canvas)
+    // 确保绘制区域覆盖整个逻辑 Canvas 区域
     ctx.drawImage(
       bgImageEl.current,
       0,
@@ -186,6 +225,16 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       width,
       height,
     );
+
+    if (!firstFrameLoggedRef.current) {
+      firstFrameLoggedRef.current = true;
+      const now = performance.now();
+      logPerf("[screenshot][ui] overlay:first_frame_drawn", {
+        elapsedSinceImageLoadMs: Math.round(now - imageLoadedAtRef.current),
+        metric: SCREENSHOT_PERF_METRICS.firstFrameDrawn,
+        targetMs: SCREENSHOT_PERF_ACCEPTANCE_TARGETS.firstFrameAfterReadyMs,
+      });
+    }
 
     // Dark overlay over entire canvas
     ctx.fillStyle = "rgba(0,0,0,0.45)";
@@ -306,6 +355,9 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       ctx.fillStyle = "#ffffff";
       ctx.fillText(label, tooltipX + padding, tooltipY + tooltipH - 7);
     }
+
+    // 恢复上下文
+    ctx.restore();
   };
 
   const getCanvasPos = (
@@ -314,12 +366,17 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     const canvas = getCanvas();
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    };
+    return getCanvasLogicalPoint(
+      { x: e.clientX, y: e.clientY },
+      {
+        height: rect.height,
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+      },
+      { height: canvas.height, width: canvas.width },
+      getDpr(),
+    );
   };
 
   /** 判断点是否在当前选区内 */
@@ -370,9 +427,7 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 
     // 拖拽控制点调整选区大小
     if (activeHandle.current) {
-      const canvas = getCanvas();
-      const cw = canvas?.width ?? 0;
-      const ch = canvas?.height ?? 0;
+      const { height: ch, width: cw } = getCanvasLogicalBounds();
       const { x: sx, y: sy, w: sw, h: sh } = handleSelStart.current;
       const dx = pos.x - handleDragStart.current.x;
       const dy = pos.y - handleDragStart.current.y;
@@ -433,16 +488,10 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 
     // 移动选区
     if (isMoving.current) {
-      const canvas = getCanvas();
+      const { height: ch, width: cw } = getCanvasLogicalBounds();
       const { h, w } = currentSel.current;
-      const newX = Math.max(
-        0,
-        Math.min(pos.x - moveOffset.current.x, (canvas?.width ?? 0) - w),
-      );
-      const newY = Math.max(
-        0,
-        Math.min(pos.y - moveOffset.current.y, (canvas?.height ?? 0) - h),
-      );
+      const newX = Math.max(0, Math.min(pos.x - moveOffset.current.x, cw - w));
+      const newY = Math.max(0, Math.min(pos.y - moveOffset.current.y, ch - h));
       currentSel.current = { h, w, x: newX, y: newY };
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = requestAnimationFrame(drawFrame);
@@ -556,14 +605,38 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     if (!canvas) return;
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      // 使用 window.innerWidth/Height 获取窗口大小
+      // 注意：截图窗口应该全屏覆盖显示器
+      const logicalWidth = window.innerWidth;
+      const logicalHeight = window.innerHeight;
+      const dpr = getDpr();
+      const size = getCanvasPixelSize(logicalWidth, logicalHeight, dpr);
+
+      // 确保 Canvas 实际像素大小和 CSS 显示大小一致
+      canvas.style.width = `${logicalWidth}px`;
+      canvas.style.height = `${logicalHeight}px`;
+      canvas.width = size.width;
+      canvas.height = size.height;
+
+      logPerf("[screenshot][ui] canvas:resized", {
+        dpr,
+        logicalHeight,
+        logicalWidth,
+        pixelHeight: size.height,
+        pixelWidth: size.width,
+      });
+
       drawFrame();
     };
 
-    resize();
+    // 延迟执行 resize，确保窗口大小已稳定
+    const timer = setTimeout(resize, 0);
     window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", resize);
+    };
   }, []);
 
   // Auto-focus the canvas so it receives keyboard events

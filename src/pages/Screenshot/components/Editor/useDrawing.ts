@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DrawTool } from "../Toolbar";
 import { drawShape, hitTestShape, moveShape } from "./drawUtils";
+import { resolveImageSourceRect } from "./image-source-rect";
 import type { Selection, Shape, TextShape } from "./types";
 
 interface UseDrawingOptions {
@@ -13,6 +14,8 @@ interface UseDrawingOptions {
   activeTool: DrawTool;
   /** bgImage 已经是裁剪好的选区图片，不需要再用 selection.x/y 偏移裁剪 */
   bgImageCropped?: boolean;
+  /** bgImage 为全屏图时的逻辑尺寸，用于正确映射选区到源图像素 */
+  bgImageLogicalSize?: { w: number; h: number };
 }
 
 export function useDrawing({
@@ -24,6 +27,7 @@ export function useDrawing({
   fontSize,
   activeTool,
   bgImageCropped = false,
+  bgImageLogicalSize,
 }: UseDrawingOptions) {
   const bgImageEl = useRef<HTMLImageElement | null>(null);
   const bgImageLoaded = useRef(false);
@@ -68,19 +72,28 @@ export function useDrawing({
 
     const { h, w } = selection;
     const dpr = window.devicePixelRatio || 1;
-    ctx.clearRect(0, 0, w, h);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     if (bgImageEl.current) {
       if (bgImageCropped) {
         // 图片已经是裁剪好的选区，直接绘制整张图片到 canvas
         ctx.drawImage(bgImageEl.current, 0, 0, w, h);
       } else {
+        const source = resolveImageSourceRect({
+          imageHeight: bgImageEl.current.naturalHeight,
+          imageWidth: bgImageEl.current.naturalWidth,
+          logicalHeight: bgImageLogicalSize?.h ?? window.innerHeight,
+          logicalWidth: bgImageLogicalSize?.w ?? window.innerWidth,
+          selection,
+        });
         ctx.drawImage(
           bgImageEl.current,
-          selection.x * dpr,
-          selection.y * dpr,
-          w * dpr,
-          h * dpr,
+          source.sx,
+          source.sy,
+          source.sw,
+          source.sh,
           0,
           0,
           w,
@@ -97,7 +110,7 @@ export function useDrawing({
     if (currentShape.current) {
       drawShape(ctx, currentShape.current, bgCanvasRef.current);
     }
-  }, [selection, canvasRef, bgCanvasRef]);
+  }, [selection, canvasRef, bgCanvasRef, bgImageCropped, bgImageLogicalSize]);
 
   // Load background image
   // Load background image
@@ -108,7 +121,6 @@ export function useDrawing({
         bgImageEl.current = img;
         bgImageLoaded.current = true;
 
-        const dpr = window.devicePixelRatio || 1;
         const bgCanvas = bgCanvasRef.current;
         if (bgCanvas) {
           bgCanvas.width = selection.w;
@@ -119,12 +131,19 @@ export function useDrawing({
               // 图片已经是裁剪好的选区，直接绘制整张图片
               ctx.drawImage(img, 0, 0, selection.w, selection.h);
             } else {
+              const source = resolveImageSourceRect({
+                imageHeight: img.naturalHeight,
+                imageWidth: img.naturalWidth,
+                logicalHeight: bgImageLogicalSize?.h ?? window.innerHeight,
+                logicalWidth: bgImageLogicalSize?.w ?? window.innerWidth,
+                selection,
+              });
               ctx.drawImage(
                 img,
-                selection.x * dpr,
-                selection.y * dpr,
-                selection.w * dpr,
-                selection.h * dpr,
+                source.sx,
+                source.sy,
+                source.sw,
+                source.sh,
                 0,
                 0,
                 selection.w,
@@ -138,7 +157,7 @@ export function useDrawing({
       };
       img.src = bgImage;
     },
-    [selection, bgCanvasRef, redraw, bgImageCropped],
+    [selection, bgCanvasRef, redraw, bgImageCropped, bgImageLogicalSize],
   );
   const commitShape = useCallback(
     (shape: Shape) => {

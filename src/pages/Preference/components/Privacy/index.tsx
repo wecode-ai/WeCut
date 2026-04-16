@@ -5,7 +5,7 @@ import { writeText } from "tauri-plugin-clipboard-x-api";
 import ProList from "@/components/ProList";
 import ProListItem from "@/components/ProListItem";
 
-const SOURCE_CODE_URL = "https://github.com/Micro66/weCut/";
+const SOURCE_CODE_URL = "https://github.com/wecode-ai/WeCut";
 
 const Privacy = () => {
   const { t } = useTranslation();

@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
 import { resolveResource } from "@tauri-apps/api/path";
@@ -10,25 +9,21 @@ import { LISTEN_KEY } from "@/constants";
 import { showWindow } from "@/plugins/window";
 import { globalStore } from "@/stores/global";
 import { isMac } from "@/utils/is";
+import { triggerScreenshotFromCursor } from "@/utils/screenshot-trigger";
 import { useSubscribeKey } from "./useSubscribeKey";
 
 const TRAY_ID = "app-tray";
 
 const triggerScreenshot = async () => {
   try {
-    // Hide main window first
-    await invoke("plugin:eco-window|hide_window");
-    // Small delay to allow main window to hide
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    // Show screenshot window on primary monitor (index 0)
-    await invoke("show_screenshot_window", { monitorIndex: 0 });
+    await triggerScreenshotFromCursor({ hideDelayMs: 100 });
   } catch {
     // Screenshot trigger failed
   }
 };
 
 export const useTray = () => {
-  const [startListen, { toggle }] = useBoolean(true);
+  const [startListen] = useBoolean(true);
   const { t } = useTranslation();
 
   // 监听是否显示菜单栏图标
@@ -101,12 +96,6 @@ export const useTray = () => {
         accelerator: isMac ? "Cmd+," : void 0,
         action: () => showWindow("preference"),
         text: t("component.tray.label.preference"),
-      }),
-      MenuItem.new({
-        action: toggle,
-        text: startListen
-          ? t("component.tray.label.stop_listening")
-          : t("component.tray.label.start_listening"),
       }),
       MenuItem.new({
         action: triggerScreenshot,

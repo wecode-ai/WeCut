@@ -1,6 +1,7 @@
 import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { message } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { getCanvasPixelSize } from "@/utils/canvas-hidpi";
 import {
   copyImageToClipboard,
   hideScreenshotWindow,
@@ -25,6 +26,7 @@ const PIN_TOOLBAR_HEIGHT = 140;
 const Editor: React.FC<EditorProps> = ({
   bgImage,
   bgImageCropped = false,
+  bgImageLogicalSize,
   selection,
   onClose,
   onMove,
@@ -77,6 +79,7 @@ const Editor: React.FC<EditorProps> = ({
     activeTool,
     bgCanvasRef,
     bgImageCropped,
+    bgImageLogicalSize,
     canvasRef,
     fontSize,
     lineWidth,
@@ -366,6 +369,11 @@ const Editor: React.FC<EditorProps> = ({
 
   const menuLeft = canvasOffsetX + selection.w / 2;
   const ocrOverlayVisible = ocrBlocks !== null;
+  const canvasPixelSize = getCanvasPixelSize(
+    currentSel.w,
+    currentSel.h,
+    window.devicePixelRatio || 1,
+  );
 
   return (
     <div
@@ -388,7 +396,7 @@ const Editor: React.FC<EditorProps> = ({
       {/* Canvas */}
       {/* Canvas */}
       <canvas
-        height={currentSel.h}
+        height={canvasPixelSize.height}
         onDoubleClick={(e) => {
           if (pinned && !toolbarExpanded) return;
           if (ocrOverlayVisible) return;
@@ -426,11 +434,13 @@ const Editor: React.FC<EditorProps> = ({
                 ? "text"
                 : "crosshair",
           display: "block",
+          height: currentSel.h,
           marginLeft: canvasOffsetX,
           outline: "none",
+          width: currentSel.w,
         }}
         tabIndex={0}
-        width={currentSel.w}
+        width={canvasPixelSize.width}
       />
       {/* Hidden bg canvas for mosaic sampling */}
       <canvas ref={bgCanvasRef} style={{ display: "none" }} />
