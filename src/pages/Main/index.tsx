@@ -22,7 +22,6 @@ import { useTauriListen } from "@/hooks/useTauriListen";
 import { type PasteResult, pasteToClipboard } from "@/plugins/clipboard";
 import {
   applyMainWindowLayout,
-  showTaskbarIcon,
   showToastWindow,
   showWindow,
   toggleWindowVisible,
@@ -115,9 +114,6 @@ const Main = () => {
       audioRef.current?.play();
     },
   });
-
-  // 任务栏图标的显示与隐藏
-  useImmediateKey(globalStore.app, "showTaskbarIcon", showTaskbarIcon);
 
   // 同步配置项
   useTauriListen<Store>(LISTEN_KEY.STORE_CHANGED, ({ payload }) => {

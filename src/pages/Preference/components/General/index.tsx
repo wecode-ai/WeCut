@@ -56,14 +56,6 @@ const General = () => {
           title={t("preference.settings.app_settings.label.show_menubar_icon")}
           value={app.showMenubarIcon}
         />
-
-        <ProSwitch
-          onChange={(value) => {
-            globalStore.app.showTaskbarIcon = value;
-          }}
-          title={t("preference.settings.app_settings.label.show_taskbar_icon")}
-          value={app.showTaskbarIcon}
-        />
       </ProList>
 
       <ProList header={t("preference.settings.appearance_settings.title")}>

@@ -1,4 +1,7 @@
-use super::{is_main_window, shared_hide_window, shared_show_window, TOAST_WINDOW_LABEL};
+use super::{
+    is_main_window, shared_hide_window, shared_show_window, PREFERENCE_WINDOW_LABEL,
+    TOAST_WINDOW_LABEL,
+};
 use crate::MAIN_WINDOW_LABEL;
 use std::time::Duration;
 use tauri::{command, AppHandle, Manager, PhysicalPosition, Position, Runtime, WebviewWindow};
@@ -10,12 +13,21 @@ pub enum MacOSPanelStatus {
     Resign,
 }
 
+// 是否为偏好设置窗口
+fn is_preference_window<R: Runtime>(window: &WebviewWindow<R>) -> bool {
+    window.label() == PREFERENCE_WINDOW_LABEL
+}
+
 // 显示窗口
 #[command]
 pub async fn show_window<R: Runtime>(app_handle: AppHandle<R>, window: WebviewWindow<R>) {
     if is_main_window(&window) {
         set_macos_panel(&app_handle, &window, MacOSPanelStatus::Show);
     } else {
+        // 显示偏好设置窗口时，同时显示 dock 图标
+        if is_preference_window(&window) {
+            let _ = app_handle.set_dock_visibility(true);
+        }
         shared_show_window(&window);
     }
 }
@@ -27,6 +39,10 @@ pub async fn hide_window<R: Runtime>(app_handle: AppHandle<R>, window: WebviewWi
         set_macos_panel(&app_handle, &window, MacOSPanelStatus::Hide);
     } else {
         shared_hide_window(&window);
+        // 隐藏偏好设置窗口时，同时隐藏 dock 图标
+        if is_preference_window(&window) {
+            let _ = app_handle.set_dock_visibility(false);
+        }
     }
 }
 

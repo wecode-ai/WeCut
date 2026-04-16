@@ -212,6 +212,12 @@ pub fn run() {
                     // 预创建的固定窗口：隐藏保留
                     window.hide().unwrap();
                     api.prevent_close();
+
+                    // macOS：关闭偏好设置窗口时隐藏 dock 图标
+                    #[cfg(target_os = "macos")]
+                    if label == PREFERENCE_WINDOW_LABEL {
+                        let _ = window.app_handle().set_dock_visibility(false);
+                    }
                 }
             }
             _ => {}
