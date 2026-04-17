@@ -78,6 +78,19 @@
       },
       "label": {
         "send": "送信"
+      },
+      "work_queue": {
+        "label": {
+          "queue_name": "キュー"
+        },
+        "loading_queues": "読み込み中…",
+        "no_queues": "キューがありません",
+        "placeholder": {
+          "queue_name": "キューを選択"
+        },
+        "validation": {
+          "queue_required": "キューを選択してください"
+        }
       }
     },
     "shortcut_key": {

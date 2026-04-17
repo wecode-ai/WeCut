@@ -357,6 +357,16 @@ const DockMode = () => {
     }
   };
 
+  // Cmd+Enter: quick send active item to inbox (open send modal)
+  useShortcutAction(
+    "dock-send-to-inbox",
+    "meta.enter",
+    () => {
+      handleDockSend("workQueue");
+    },
+    { context: "normal", priority: 20 },
+  );
+
   // WegentChat 快捷键仅在环境变量开启时注册
   useShortcutAction(
     "dock-send-to-ai-chat",

@@ -15,6 +15,9 @@ fn get_system_env(key: String) -> Option<String> {
     env::var(key).ok()
 }
 
+// 内容超过此字节数时转为附件发送
+const CONTENT_ATTACHMENT_THRESHOLD: usize = 2048;
+
 // 发送消息到 Work Queue
 #[tauri::command]
 async fn send_to_work_queue(
@@ -51,8 +54,25 @@ async fn send_to_work_queue(
     let mut form = Form::new();
 
     // 添加 content（剪切板文本内容）
+    // 超过 2k 时转为临时文件作为附件发送，避免内容过长导致请求失败
+    let mut temp_file_path: Option<std::path::PathBuf> = None;
     if let Some(text) = content {
-        form = form.text("content", text);
+        if text.len() > CONTENT_ATTACHMENT_THRESHOLD {
+            log::info!(
+                "[send_to_work_queue] content length {} exceeds threshold {}, converting to attachment",
+                text.len(),
+                CONTENT_ATTACHMENT_THRESHOLD
+            );
+            // 写入临时文件
+            let tmp_dir = std::env::temp_dir();
+            let tmp_file = tmp_dir.join(format!("wecut_content_{}.txt", uuid_v4()));
+            tokio::fs::write(&tmp_file, text.as_bytes())
+                .await
+                .map_err(|e| format!("写入临时文件失败: {}", e))?;
+            temp_file_path = Some(tmp_file);
+        } else {
+            form = form.text("content", text);
+        }
     }
 
     // 添加 note（备注）
@@ -65,7 +85,7 @@ async fn send_to_work_queue(
         form = form.text("title", t);
     }
 
-    // 添加文件附件
+    // 添加文件附件（原始文件）
     for file_path in &file_paths {
         let file_content = tokio::fs::read(file_path)
             .await
@@ -82,6 +102,24 @@ async fn send_to_work_queue(
             .map_err(|e| e.to_string())?;
         form = form.part("files", part);
     }
+
+    // 添加超长内容转换的临时文件附件
+    if let Some(ref tmp_path) = temp_file_path {
+        let file_content = tokio::fs::read(tmp_path)
+            .await
+            .map_err(|e| format!("读取临时文件失败: {}", e))?;
+        let file_name = tmp_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("content.txt")
+            .to_string();
+        let part = Part::bytes(file_content)
+            .file_name(file_name)
+            .mime_str("text/plain; charset=utf-8")
+            .map_err(|e| e.to_string())?;
+        form = form.part("files", part);
+    }
+
     let response = client
         .post(&url)
         .header("Authorization", format!("Bearer {}", api_token))
@@ -95,12 +133,67 @@ async fn send_to_work_queue(
         response.status()
     );
 
+    // 清理临时文件（无论成功或失败）
+    if let Some(ref tmp_path) = temp_file_path {
+        let _ = tokio::fs::remove_file(tmp_path).await;
+    }
+
     if response.status().is_success() {
         Ok(())
     } else {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
         log::error!("[send_to_work_queue] Error: HTTP {}: {}", status, body);
+        Err(format!("HTTP {}: {}", status, body))
+    }
+}
+
+// 生成简单的唯一 ID（基于时间戳 + 随机数）
+fn uuid_v4() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    format!("{:x}", ts)
+}
+
+// 获取工作队列列表
+#[tauri::command]
+async fn fetch_work_queues(
+    base_url: String,
+    api_token: String,
+) -> Result<serde_json::Value, String> {
+    use reqwest::Client;
+
+    let url = format!("{}/api/work-queues", base_url.trim_end_matches('/'));
+
+    log::info!("[fetch_work_queues] url={}", url);
+
+    let client = Client::builder()
+        .no_proxy()
+        .build()
+        .map_err(|e| format!("创建客户端失败: {}", e))?;
+
+    let response = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", api_token))
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("请求失败: {}", e))?;
+
+    log::info!("[fetch_work_queues] status={}", response.status());
+
+    if response.status().is_success() {
+        let data: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| format!("解析响应失败: {}", e))?;
+        Ok(data)
+    } else {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
         Err(format!("HTTP {}: {}", status, body))
     }
 }
@@ -189,6 +282,7 @@ pub fn run() {
         .invoke_handler(generate_handler![
             get_system_env,
             send_to_work_queue,
+            fetch_work_queues,
             plugins::text_expansion::commands::set_text_expansion_prefix,
             plugins::text_expansion::commands::set_text_expansions,
             plugins::text_expansion::commands::set_text_expansion_enabled,

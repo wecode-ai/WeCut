@@ -1,6 +1,6 @@
-import { CloseOutlined, RobotOutlined, SendOutlined } from "@ant-design/icons";
+import { CloseOutlined } from "@ant-design/icons";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { Button } from "antd";
+import UnoIcon from "@/components/UnoIcon";
 import "./index.scss";
 
 interface HeaderProps {
@@ -17,19 +17,22 @@ const Header = ({ title, isAiChat = false }: HeaderProps) => {
   return (
     <div className="send-modal-header" data-tauri-drag-region>
       <div className="send-modal-header-title" data-tauri-drag-region>
-        {isAiChat ? (
-          <RobotOutlined className="header-icon" />
-        ) : (
-          <SendOutlined className="header-icon" />
-        )}
-        {title}
+        <div className="header-icon-wrap">
+          <UnoIcon
+            className="header-icon"
+            name={isAiChat ? "i-lucide:bot" : "i-lucide:send"}
+            size={13}
+          />
+        </div>
+        <span className="header-title-text">{title}</span>
       </div>
-      <Button
+      <button
         className="send-modal-header-close"
-        icon={<CloseOutlined />}
         onClick={handleClose}
-        type="text"
-      />
+        type="button"
+      >
+        <CloseOutlined style={{ fontSize: 11 }} />
+      </button>
     </div>
   );
 };

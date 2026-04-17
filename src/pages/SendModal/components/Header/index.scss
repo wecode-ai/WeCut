@@ -1,62 +1,17 @@
+// Header styles are defined in the parent index.scss
+// This file is kept for component-specific overrides if needed
+
 .send-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 40px;
-  padding: 0 12px 0 16px;
-  background: var(--ant-color-bg-container, #fff);
-  border-bottom: 1px solid var(--ant-color-split, rgba(0, 0, 0, 0.06));
   -webkit-app-region: drag;
   app-region: drag;
-
-  .dark & {
-    background: var(--ant-color-bg-container, #1e1e1e);
-    border-bottom-color: var(--ant-color-split, rgba(255, 255, 255, 0.08));
-  }
 }
 
 .send-modal-header-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ant-color-text, rgba(0, 0, 0, 0.85));
   -webkit-app-region: drag;
   app-region: drag;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  .dark & {
-    color: var(--ant-color-text, rgba(255, 255, 255, 0.85));
-  }
-
-  .header-icon {
-    font-size: 16px;
-  }
 }
 
 .send-modal-header-close {
   -webkit-app-region: no-drag;
   app-region: no-drag;
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  transition: all 0.2s;
-
-  &:hover {
-    color: var(--ant-color-text, rgba(0, 0, 0, 0.75));
-    background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
-  }
-
-  .dark & {
-    color: var(--ant-color-text-secondary, rgba(255, 255, 255, 0.45));
-
-    &:hover {
-      color: var(--ant-color-text, rgba(255, 255, 255, 0.75));
-      background: var(--ant-color-fill-secondary, rgba(255, 255, 255, 0.08));
-    }
-  }
 }

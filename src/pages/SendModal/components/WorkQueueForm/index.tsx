@@ -1,7 +1,7 @@
-import { Button, Form, Input, notification, Space } from "antd";
+import { Button, Form, Input, notification, Tooltip } from "antd";
 import { isString } from "es-toolkit/compat";
 import { t } from "i18next";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 import UnoIcon from "@/components/UnoIcon";
 import {
@@ -11,20 +11,30 @@ import {
 } from "@/plugins/sendModal";
 import { clipboardStore } from "@/stores/clipboard";
 import type { DatabaseSchemaHistory } from "@/types/database";
+import { DEFAULTS } from "@/utils/envConfig";
 import { isImage } from "@/utils/is";
-import { handleWorkQueueSend } from "@/utils/send";
+import {
+  fetchWorkQueues,
+  handleWorkQueueSend,
+  type WorkQueueItem,
+} from "@/utils/send";
 import ImagePreviewWithOcr from "../ImagePreviewWithOcr";
 
 const { TextArea } = Input;
+
+/** 内容超过此字节数时将转为附件发送 */
+const CONTENT_ATTACHMENT_THRESHOLD = 2048;
 
 interface FormFields {
   title: string;
   note: string;
   /** 发送内容（常驻字段，可手动输入，图片类型时可通过 OCR 填入） */
   content: string;
+  /** 目标队列名称 */
+  queueName: string;
 }
 
-// 检查 Work Queue 配置是否有效
+// 检查 Work Queue 配置是否有效（只需要 apiToken 和 baseUrl，queueName 由表单选择）
 const isWorkQueueConfigValid = (
   config: typeof clipboardStore.workQueueConfig,
 ): boolean => {
@@ -32,9 +42,7 @@ const isWorkQueueConfigValid = (
     config?.apiToken &&
     config.apiToken.trim() !== "" &&
     config?.baseUrl &&
-    config.baseUrl.trim() !== "" &&
-    config?.queueName &&
-    config.queueName.trim() !== ""
+    config.baseUrl.trim() !== ""
   );
 };
 
@@ -77,16 +85,70 @@ const ContentPreview = ({ item }: { item?: DatabaseSchemaHistory | null }) => {
     preview = value.join(", ");
   }
 
+  const isLarge =
+    new TextEncoder().encode(preview).length > CONTENT_ATTACHMENT_THRESHOLD;
+
   return (
     <div className="content-preview-section">
       <div className="section-label">
         <UnoIcon name="i-lucide:file-text" size={14} />
         <span>内容</span>
+        {isLarge && (
+          <Tooltip
+            title={t(
+              "component.send_modal.work_queue.hint.large_content_as_attachment",
+              "内容超过 2KB，将作为文本附件发送",
+            )}
+          >
+            <span className="content-size-badge">
+              <UnoIcon name="i-lucide:paperclip" size={12} />
+              <span>
+                {t(
+                  "component.send_modal.work_queue.hint.as_attachment",
+                  "附件",
+                )}
+              </span>
+            </span>
+          </Tooltip>
+        )}
       </div>
       <div className="content-preview-box">
         <pre className="preview-text">{preview}</pre>
       </div>
     </div>
+  );
+};
+
+// 内容字段标签（带超大内容附件提示）
+const ContentFieldLabel = ({ value }: { value: string }) => {
+  const isLarge =
+    new TextEncoder().encode(value).length > CONTENT_ATTACHMENT_THRESHOLD;
+  return (
+    <span style={{ alignItems: "center", display: "inline-flex", gap: 4 }}>
+      {t("component.send_modal.work_queue.label.content", "内容")}
+      {isLarge && (
+        <Tooltip
+          title={t(
+            "component.send_modal.work_queue.hint.large_content_as_attachment",
+            "内容超过 2KB，将作为文本附件发送",
+          )}
+        >
+          <span
+            style={{
+              alignItems: "center",
+              color: "var(--ant-color-warning)",
+              cursor: "default",
+              display: "inline-flex",
+              fontSize: 11,
+              gap: 2,
+            }}
+          >
+            <UnoIcon name="i-lucide:paperclip" size={11} />
+            {t("component.send_modal.work_queue.hint.as_attachment", "附件")}
+          </span>
+        </Tooltip>
+      )}
+    </span>
   );
 };
 
@@ -136,15 +198,155 @@ const FilesSection = ({
   );
 };
 
+// ============================================================
+// InboxPicker: 搜索 + 网格卡片选择器（替代 Select 下拉框）
+// ============================================================
+interface InboxPickerProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  queues: WorkQueueItem[];
+  loading: boolean;
+  search: string;
+  onSearchChange: (v: string) => void;
+}
+
+const InboxPicker = ({
+  value,
+  onChange,
+  queues,
+  loading,
+  search,
+  onSearchChange,
+}: InboxPickerProps) => {
+  const filtered = useMemo(() => {
+    if (!search.trim()) return queues;
+    const kw = search.trim().toLowerCase();
+    return queues.filter(
+      (q) =>
+        (q.displayName || q.name).toLowerCase().includes(kw) ||
+        q.name.toLowerCase().includes(kw),
+    );
+  }, [queues, search]);
+
+  return (
+    <div className="inbox-picker">
+      {/* 搜索框：绝对定位到 Form.Item label 行右侧 */}
+      <div className="inbox-picker-search">
+        <UnoIcon
+          className="inbox-picker-search-icon"
+          name="i-lucide:search"
+          size={11}
+        />
+        <input
+          className="inbox-picker-search-input"
+          onChange={(e) => onSearchChange(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          placeholder={t(
+            "component.send_modal.work_queue.placeholder.search_queue",
+            "搜索…",
+          )}
+          type="text"
+          value={search}
+        />
+        {search && (
+          <button
+            className="inbox-picker-search-clear"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSearchChange("");
+            }}
+            type="button"
+          >
+            <UnoIcon name="i-lucide:x" size={10} />
+          </button>
+        )}
+      </div>
+
+      {/* 卡片网格 */}
+      <div className="inbox-picker-grid">
+        {loading ? (
+          <div className="inbox-picker-empty">
+            <UnoIcon name="i-lucide:loader-circle" size={14} />
+            <span>
+              {t("component.send_modal.work_queue.loading_queues", "加载中…")}
+            </span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="inbox-picker-empty">
+            <UnoIcon name="i-lucide:inbox" size={14} />
+            <span>
+              {search
+                ? t(
+                    "component.send_modal.work_queue.no_match_queues",
+                    "无匹配队列",
+                  )
+                : t("component.send_modal.work_queue.no_queues", "暂无队列")}
+            </span>
+          </div>
+        ) : (
+          filtered.map((q) => {
+            const label = q.displayName || q.name;
+            const isSelected = value === q.name;
+            return (
+              <button
+                className={`inbox-card${isSelected ? "inbox-card--selected" : ""}`}
+                key={q.name}
+                onClick={() => onChange?.(q.name)}
+                title={label}
+                type="button"
+              >
+                <UnoIcon
+                  className="inbox-card-icon"
+                  name={
+                    isSelected ? "i-lucide:check-circle-2" : "i-lucide:inbox"
+                  }
+                  size={14}
+                />
+                <span className="inbox-card-name">{label}</span>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+};
+
 const WorkQueueForm = () => {
   const [form] = Form.useForm<FormFields>();
   const { wegent, workQueueConfig } = useSnapshot(clipboardStore);
   const [item, setItem] = useState<DatabaseSchemaHistory | null>(null);
   const [loading, setLoading] = useState(false);
+  const [queues, setQueues] = useState<WorkQueueItem[]>([]);
+  const [loadingQueues, setLoadingQueues] = useState(false);
+  const [queueSearch, setQueueSearch] = useState("");
   const contentRef = useRef<any>(null);
 
   // 优先使用新的 wegent 配置，兼容旧配置
   const effectiveConfig = wegent?.workQueue || workQueueConfig;
+
+  const baseUrl = effectiveConfig?.baseUrl || DEFAULTS.WORK_QUEUE_URL;
+  const apiToken = effectiveConfig?.apiToken || "";
+  const _defaultQueueName = effectiveConfig?.queueName || "";
+
+  // 加载队列列表
+  const loadQueues = useCallback(async () => {
+    if (!baseUrl || !apiToken) {
+      setQueues([]);
+      return;
+    }
+    setLoadingQueues(true);
+    try {
+      const result = await fetchWorkQueues(baseUrl, apiToken);
+      setQueues(result);
+    } finally {
+      setLoadingQueues(false);
+    }
+  }, [baseUrl, apiToken]);
+
+  useEffect(() => {
+    loadQueues();
+  }, [loadQueues]);
 
   // 加载剪贴板项目并监听数据变化
   useEffect(() => {
@@ -155,6 +357,7 @@ const WorkQueueForm = () => {
       form.setFieldsValue({
         content: "",
         note: effectiveConfig?.defaults?.note || "",
+        queueName: effectiveConfig?.queueName || "",
         title: effectiveConfig?.defaults?.title || "",
       });
     };
@@ -186,7 +389,7 @@ const WorkQueueForm = () => {
     contentRef.current?.focus();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!isWorkQueueConfigValid(effectiveConfig)) {
       notification.warning({
         description: (
@@ -253,7 +456,14 @@ const WorkQueueForm = () => {
         }
       }
 
-      await handleWorkQueueSend(effectiveConfig, {
+      // 使用用户在表单中选择的队列名称（覆盖配置中的默认值）
+      const selectedQueueName =
+        values.queueName || effectiveConfig?.queueName || "";
+      const configWithSelectedQueue = effectiveConfig
+        ? { ...effectiveConfig, queueName: selectedQueueName }
+        : effectiveConfig;
+
+      await handleWorkQueueSend(configWithSelectedQueue, {
         content,
         files,
         note: values.note,
@@ -281,7 +491,7 @@ const WorkQueueForm = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [effectiveConfig, form, item]);
 
   const handleCancel = async () => {
     await closeCurrentSendModal();
@@ -306,6 +516,17 @@ const WorkQueueForm = () => {
     return [];
   })();
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSubmit]);
+
   return (
     <div className="work-queue-form-container">
       {/* 可滚动的内容区域 */}
@@ -323,20 +544,55 @@ const WorkQueueForm = () => {
         )}
 
         <Form className="send-modal-form" form={form} layout="vertical">
+          {/* 队列选择 - 卡片网格选择器 */}
+          <Form.Item
+            label={t(
+              "component.send_modal.work_queue.label.queue_name",
+              "队列",
+            )}
+            name="queueName"
+            rules={[
+              {
+                message: t(
+                  "component.send_modal.work_queue.validation.queue_required",
+                  "请选择队列",
+                ),
+                required: true,
+              },
+            ]}
+            style={{ position: "relative" }}
+          >
+            <InboxPicker
+              loading={loadingQueues}
+              onSearchChange={setQueueSearch}
+              queues={queues}
+              search={queueSearch}
+            />
+          </Form.Item>
+
           {/* 内容字段（常驻），可手动输入或通过 OCR 填入 */}
           <Form.Item
-            label={t("component.send_modal.work_queue.label.content", "内容")}
-            name="content"
+            noStyle
+            shouldUpdate={(prev, cur) => prev.content !== cur.content}
           >
-            <TextArea
-              autoComplete="off"
-              placeholder={t(
-                "component.send_modal.work_queue.placeholder.content",
-                "可选，图片类型可通过 OCR 识别后填入…",
-              )}
-              ref={contentRef}
-              rows={4}
-            />
+            {({ getFieldValue }) => (
+              <Form.Item
+                label={
+                  <ContentFieldLabel value={getFieldValue("content") || ""} />
+                }
+                name="content"
+              >
+                <TextArea
+                  autoComplete="off"
+                  placeholder={t(
+                    "component.send_modal.work_queue.placeholder.content",
+                    "可选，图片类型可通过 OCR 识别后填入…",
+                  )}
+                  ref={contentRef}
+                  rows={4}
+                />
+              </Form.Item>
+            )}
           </Form.Item>
 
           <Form.Item
@@ -370,19 +626,21 @@ const WorkQueueForm = () => {
 
       {/* 固定在底部的操作按钮 */}
       <div className="send-modal-actions">
-        <Space>
-          <Button onClick={handleCancel} size="small">
-            {t("component.send_modal.button.cancel")}
-          </Button>
-          <Button
-            loading={loading}
-            onClick={handleSubmit}
-            size="small"
-            type="primary"
-          >
-            {t("component.send_modal.button.send")}
-          </Button>
-        </Space>
+        <button
+          className="sm-btn sm-btn-default"
+          onClick={handleCancel}
+          type="button"
+        >
+          {t("component.send_modal.button.cancel")}
+        </button>
+        <button
+          className="sm-btn sm-btn-primary"
+          disabled={loading}
+          onClick={handleSubmit}
+          type="button"
+        >
+          {loading ? "发送中…" : t("component.send_modal.button.send")}
+        </button>
       </div>
     </div>
   );

@@ -33,12 +33,16 @@ export const useRegister = (
       if (cancelled) return;
       if (!shortcuts) return;
 
-      await register(shortcuts, (event) => {
-        if (event.state === "Released") return;
-        handlerRef.current(event);
-      });
+      try {
+        await register(shortcuts, (event) => {
+          if (event.state === "Released") return;
+          handlerRef.current(event);
+        });
 
-      oldShortcutsRef.current = shortcuts;
+        oldShortcutsRef.current = shortcuts;
+      } catch (_error) {
+        // Failed to register shortcut, silently ignore
+      }
     };
 
     run();

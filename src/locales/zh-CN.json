@@ -113,17 +113,21 @@
           "content": "内容",
           "note": "备注",
           "priority": "优先级",
+          "queue_name": "队列",
           "sender_display_name": "发送者显示名称",
           "sender_external_id": "发送者外部 ID",
           "source_name": "来源名称",
           "source_type": "来源类型",
           "title": "标题"
         },
+        "loading_queues": "加载中…",
+        "no_queues": "暂无队列",
         "placeholder": {
           "content": "消息内容",
           "display_name": "显示名称",
           "external_id": "外部 ID",
           "optional": "可选",
+          "queue_name": "请选择队列",
           "source_name": "名称",
           "source_type": "类型"
         },
@@ -133,7 +137,8 @@
           "normal": "普通"
         },
         "validation": {
-          "content_required": "请输入内容"
+          "content_required": "请输入内容",
+          "queue_required": "请选择队列"
         }
       }
     },

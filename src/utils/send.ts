@@ -8,6 +8,37 @@ import type { DatabaseSchemaHistory } from "@/types/database";
 import { DEFAULTS } from "@/utils/envConfig";
 import { isImage } from "@/utils/is";
 
+export interface WorkQueueItem {
+  name: string;
+  displayName: string;
+  isDefault: boolean;
+}
+
+// 获取工作队列列表（通过 Rust 后端，绕过 Tauri HTTP plugin 权限限制）
+export const fetchWorkQueues = async (
+  baseUrl: string,
+  apiToken: string,
+): Promise<WorkQueueItem[]> => {
+  if (!baseUrl?.trim() || !apiToken?.trim()) {
+    return [];
+  }
+
+  try {
+    const data = await invoke<{ items?: any[] }>("fetch_work_queues", {
+      apiToken,
+      baseUrl,
+    });
+    const items: any[] = data.items || [];
+    return items.map((q: any) => ({
+      displayName: q.displayName || q.name,
+      isDefault: q.isDefault || false,
+      name: q.name,
+    }));
+  } catch (_error) {
+    return [];
+  }
+};
+
 // 读取图片文件并转为 base64
 export const readImageAsBase64 = async (path: string): Promise<string> => {
   const uint8Array = await readFile(path);

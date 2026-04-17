@@ -138,6 +138,19 @@ const HistoryList = () => {
     { context: "normal", priority: 10 },
   );
 
+  // Cmd+Enter: quick send active item to inbox (open send modal)
+  useShortcutAction(
+    "list-send-to-inbox",
+    "meta.enter",
+    () => {
+      const { activeId } = rootState;
+      if (activeId) {
+        sendModalRef.current?.open(activeId);
+      }
+    },
+    { context: "normal", priority: 20 },
+  );
+
   // User-configured send shortcuts
   useShortcutAction(
     "list-send-to-ai-chat",

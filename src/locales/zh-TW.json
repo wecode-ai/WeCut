@@ -78,6 +78,19 @@
       },
       "label": {
         "send": "發送"
+      },
+      "work_queue": {
+        "label": {
+          "queue_name": "佇列"
+        },
+        "loading_queues": "載入中…",
+        "no_queues": "暫無佇列",
+        "placeholder": {
+          "queue_name": "請選擇佇列"
+        },
+        "validation": {
+          "queue_required": "請選擇佇列"
+        }
       }
     },
     "shortcut_key": {

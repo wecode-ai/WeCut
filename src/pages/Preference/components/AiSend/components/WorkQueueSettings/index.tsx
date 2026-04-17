@@ -1,5 +1,6 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Button, Space } from "antd";
+import { Button, Select, Space } from "antd";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import LazyInput from "@/components/LazyInput";
@@ -8,6 +9,7 @@ import ProList from "@/components/ProList";
 import ProListItem from "@/components/ProListItem";
 import { clipboardStore } from "@/stores/clipboard";
 import { DEFAULTS } from "@/utils/envConfig";
+import { fetchWorkQueues, type WorkQueueItem } from "@/utils/send";
 
 const API_KEY_URL = DEFAULTS.API_KEY_URL;
 
@@ -17,6 +19,13 @@ const WorkQueueSettings = () => {
 
   // 获取当前配置（优先使用新的 wegent 配置）
   const config = wegent?.workQueue || workQueueConfig;
+
+  // 提取原始值，避免 valtio proxy 在 useCallback 依赖中的问题
+  const baseUrl = config?.baseUrl || DEFAULTS.WORK_QUEUE_URL;
+  const apiToken = config?.apiToken || "";
+
+  const [queues, setQueues] = useState<WorkQueueItem[]>([]);
+  const [loadingQueues, setLoadingQueues] = useState(false);
 
   const ensureWegentConfig = () => {
     if (!clipboardStore.wegent) {
@@ -38,6 +47,25 @@ const WorkQueueSettings = () => {
       };
     }
   };
+
+  const loadQueues = useCallback(async () => {
+    if (!baseUrl || !apiToken) {
+      setQueues([]);
+      return;
+    }
+    setLoadingQueues(true);
+    try {
+      const result = await fetchWorkQueues(baseUrl, apiToken);
+      setQueues(result);
+    } finally {
+      setLoadingQueues(false);
+    }
+  }, [baseUrl, apiToken]);
+
+  // 当 baseUrl 或 apiToken 变化时自动加载队列列表
+  useEffect(() => {
+    loadQueues();
+  }, [loadQueues]);
 
   const openApiKeyPage = async () => {
     await openUrl(API_KEY_URL);
@@ -67,6 +95,11 @@ const WorkQueueSettings = () => {
     ensureWegentConfig();
     clipboardStore.wegent!.workQueue.defaults.note = value;
   };
+
+  const queueOptions = queues.map((q) => ({
+    label: q.displayName || q.name,
+    value: q.name,
+  }));
 
   return (
     <>
@@ -111,12 +144,28 @@ const WorkQueueSettings = () => {
           description={t("preference.wegent.work_queue.hints.queue_name")}
           title={t("preference.wegent.work_queue.label.queue_name")}
         >
-          <LazyInput
-            onChange={handleQueueNameChange}
-            placeholder="my-queue"
-            style={{ width: 280 }}
-            value={config?.queueName}
-          />
+          <Space>
+            <Select
+              allowClear
+              loading={loadingQueues}
+              onChange={handleQueueNameChange}
+              options={queueOptions}
+              placeholder="my-queue"
+              style={{ width: 240 }}
+              value={config?.queueName || undefined}
+            />
+            <Button
+              loading={loadingQueues}
+              onClick={loadQueues}
+              size="small"
+              title={t(
+                "preference.wegent.work_queue.button.refresh_queues",
+                "刷新队列列表",
+              )}
+            >
+              {t("preference.wegent.work_queue.button.refresh_queues", "刷新")}
+            </Button>
+          </Space>
         </ProListItem>
       </ProList>
 

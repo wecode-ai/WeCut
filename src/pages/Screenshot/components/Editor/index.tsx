@@ -196,6 +196,11 @@ const Editor: React.FC<EditorProps> = ({
     } else if (isMeta && e.key.toLowerCase() === "z") {
       e.preventDefault();
       undo();
+    } else if (isMeta && e.key === "Enter") {
+      e.preventDefault();
+      if (onSendToWegent) {
+        handleSendToWegent();
+      }
     } else if (e.key === "Escape") {
       if (ocrBlocks !== null) {
         setOcrBlocks(null);
@@ -208,7 +213,6 @@ const Editor: React.FC<EditorProps> = ({
       handleCopy();
     }
   };
-
   // Canvas mouse handlers (wraps drawing hook + Cmd+drag logic)
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button !== 0) return;

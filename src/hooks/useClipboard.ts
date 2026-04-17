@@ -54,7 +54,7 @@ export const useClipboard = (
 
     listenerRegistered = true;
 
-    const unsubscribe = onClipboardChange(async (result) => {
+    const unsubscribe = await onClipboardChange(async (result) => {
       const { files, image, html, rtf, text } = result;
 
       if (isEmpty(result) || Object.values(result).every(isEmpty)) return;
@@ -106,18 +106,21 @@ export const useClipboard = (
 
       try {
         // 准备数据库存储的值
-        let sqlValue = value;
+        let sqlValue: string = Array.isArray(value)
+          ? JSON.stringify(value)
+          : value;
 
         if (type === "image") {
-          sqlValue = await fullName(value);
+          sqlValue = await fullName(sqlValue);
         } else if (type === "files") {
-          sqlValue = JSON.stringify(value);
+          sqlValue = Array.isArray(value) ? JSON.stringify(value) : value;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sqlData: DatabaseSchemaHistory = {
           ...data,
           value: sqlValue,
-        };
+        } as any;
 
         // 获取来源应用信息
         try {

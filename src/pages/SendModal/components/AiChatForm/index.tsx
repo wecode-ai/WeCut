@@ -1,7 +1,7 @@
-import { Button, Form, Input, notification, Space, Tag } from "antd";
+import { Button, Form, Input, notification } from "antd";
 import { isString } from "es-toolkit/compat";
 import { t } from "i18next";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import UnoIcon from "@/components/UnoIcon";
 import {
   closeCurrentSendModal,
@@ -116,11 +116,15 @@ const ContentPreview = ({
   // 图片类型：显示图片预览 + OCR
   if (imagePath) {
     return (
-      <div className="mb-3 rounded-md border border-gray-200 bg-gray-50 p-3">
-        <div className="mb-2 flex items-center gap-2">
-          <UnoIcon className="text-blue-500" name="i-lucide:image" size={16} />
-          <span className="font-medium text-gray-700 text-sm">图片</span>
-          <Tag className="text-xs">{getTypeLabel(type)}</Tag>
+      <div className="ai-preview-block">
+        <div className="ai-preview-block-header">
+          <UnoIcon
+            className="ai-preview-icon image"
+            name="i-lucide:image"
+            size={12}
+          />
+          <span className="ai-preview-type-label">图片</span>
+          <span className="ai-preview-badge">{getTypeLabel(type)}</span>
         </div>
         <ImagePreviewWithOcr
           imagePath={imagePath}
@@ -135,35 +139,28 @@ const ContentPreview = ({
   if (type === "files" && Array.isArray(item.value)) {
     const files = item.value;
     return (
-      <div className="mb-3 rounded-md border border-gray-200 bg-gray-50 p-3">
-        <div className="mb-2 flex items-center gap-2">
+      <div className="ai-preview-block">
+        <div className="ai-preview-block-header">
           <UnoIcon
-            className="text-orange-500"
+            className="ai-preview-icon files"
             name="i-lucide:folder"
-            size={16}
+            size={12}
           />
-          <span className="font-medium text-gray-700 text-sm">
+          <span className="ai-preview-type-label">
             {files.length === 1 ? "文件" : `${files.length} 个文件`}
           </span>
-          <Tag className="text-xs">{getTypeLabel(type)}</Tag>
+          <span className="ai-preview-badge">{getTypeLabel(type)}</span>
         </div>
-        <div className="space-y-1">
+        <div className="ai-preview-file-list">
           {files.slice(0, 4).map((file) => (
-            <div
-              className="flex items-center gap-2 truncate text-gray-600 text-sm"
-              key={file}
-            >
-              <UnoIcon
-                className="flex-shrink-0"
-                name="i-lucide:file-text"
-                size={14}
-              />
-              <span className="truncate">{file}</span>
+            <div className="ai-preview-file-item" key={file}>
+              <UnoIcon name="i-lucide:file-text" size={12} />
+              <span className="ai-preview-file-name">{file}</span>
             </div>
           ))}
           {files.length > 4 && (
-            <div className="text-gray-400 text-xs">
-              还有 {files.length - 4} 个文件...
+            <div className="ai-preview-file-more">
+              还有 {files.length - 4} 个文件…
             </div>
           )}
         </div>
@@ -175,21 +172,21 @@ const ContentPreview = ({
   const previewText = getContentPreview(item);
 
   return (
-    <div className="mb-3 rounded-md border border-gray-200 bg-gray-50 p-3">
-      <div className="mb-2 flex items-center gap-2">
+    <div className="ai-preview-block">
+      <div className="ai-preview-block-header">
         <UnoIcon
-          className="text-green-500"
+          className="ai-preview-icon text"
           name="i-lucide:file-text"
-          size={16}
+          size={12}
         />
-        <span className="font-medium text-gray-700 text-sm">内容预览</span>
-        <Tag className="text-xs">{getTypeLabel(type)}</Tag>
-        {item.subtype && <Tag className="text-xs">{item.subtype}</Tag>}
+        <span className="ai-preview-type-label">内容预览</span>
+        <span className="ai-preview-badge">{getTypeLabel(type)}</span>
+        {item.subtype && (
+          <span className="ai-preview-badge">{item.subtype}</span>
+        )}
       </div>
-      <div className="max-h-24 overflow-hidden text-gray-600 text-sm">
-        <pre className="whitespace-pre-wrap break-all font-sans">
-          {previewText || "（空内容）"}
-        </pre>
+      <div className="ai-preview-text-content">
+        <pre className="ai-preview-text">{previewText || "（空内容）"}</pre>
       </div>
     </div>
   );
@@ -227,7 +224,7 @@ const AiChatForm = () => {
     inputRef.current?.focus();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     const storedConfig = clipboardStore.aiChatConfig;
     const currentConfig = {
       apiKey: storedConfig?.apiKey || "",
@@ -282,7 +279,7 @@ const AiChatForm = () => {
     });
 
     await closeCurrentSendModal();
-  };
+  }, [form]);
 
   const handleCancel = async () => {
     await closeCurrentSendModal();
@@ -316,6 +313,17 @@ const AiChatForm = () => {
     inputRef.current?.focus();
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSubmit]);
+
   return (
     <div className="ai-chat-form-container">
       <div className="ai-chat-form-content">
@@ -327,6 +335,7 @@ const AiChatForm = () => {
           {/* 剪贴板内容预览 */}
           <ContentPreview item={item} onOcrResult={handleOcrResult} />
 
+          {/* 输入区域 */}
           <Form.Item className="mb-0!" name="extraMessage">
             <TextArea
               autoComplete="off"
@@ -353,14 +362,20 @@ const AiChatForm = () => {
 
       {/* 底部按钮（固定在底部） */}
       <div className="send-modal-actions">
-        <Space>
-          <Button onClick={handleCancel} size="small">
-            {t("component.send_modal.button.cancel")}
-          </Button>
-          <Button onClick={handleSubmit} size="small" type="primary">
-            {t("component.send_modal.button.send")}
-          </Button>
-        </Space>
+        <button
+          className="sm-btn sm-btn-default"
+          onClick={handleCancel}
+          type="button"
+        >
+          {t("component.send_modal.button.cancel")}
+        </button>
+        <button
+          className="sm-btn sm-btn-primary"
+          onClick={handleSubmit}
+          type="button"
+        >
+          {t("component.send_modal.button.send")}
+        </button>
       </div>
     </div>
   );

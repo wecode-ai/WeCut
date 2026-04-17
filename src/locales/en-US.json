@@ -113,17 +113,21 @@
           "content": "Content",
           "note": "Note",
           "priority": "Priority",
+          "queue_name": "Queue",
           "sender_display_name": "Sender Display Name",
           "sender_external_id": "Sender External ID",
           "source_name": "Source Name",
           "source_type": "Source Type",
           "title": "Title"
         },
+        "loading_queues": "Loading…",
+        "no_queues": "No queues available",
         "placeholder": {
           "content": "Message content",
           "display_name": "Display name",
           "external_id": "External ID",
           "optional": "Optional",
+          "queue_name": "Select a queue",
           "source_name": "Name",
           "source_type": "Type"
         },
@@ -133,7 +137,8 @@
           "normal": "Normal"
         },
         "validation": {
-          "content_required": "Please enter content"
+          "content_required": "Please enter content",
+          "queue_required": "Please select a queue"
         }
       }
     },
