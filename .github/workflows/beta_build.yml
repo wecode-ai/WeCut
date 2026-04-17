@@ -124,7 +124,7 @@ jobs:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       NO_STRIP: true
       CI: false
-      # AI 服务配置
+      # AI æœ�åŠ¡é…�ç½®
       VITE_AI_DOMAIN: ${{ secrets.VITE_AI_DOMAIN }}
       VITE_AI_MODEL: ${{ secrets.VITE_AI_MODEL }}
       VITE_PLATFORM_NAME: ${{ secrets.VITE_PLATFORM_NAME }}
@@ -157,7 +157,7 @@ jobs:
         if: matrix.os == 'ubuntu-24.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libpipewire-0.3-dev
 
       - name: Install create-dmg (macos only)
         if: startsWith(matrix.os, 'macos')
@@ -166,7 +166,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          # 那些目标仅在 macos 运行器上使用，因此将其置于 `if` 语句中，以稍微加快 Windows 和 Linux 的构建速度。
+          # é‚£äº›ç›®æ ‡ä»…åœ¨ macos è¿�è¡Œå™¨ä¸Šä½¿ç”¨ï¼Œå› æ­¤å°†å…¶ç½®äºŽ `if` è¯­å�¥ä¸­ï¼Œä»¥ç¨�å¾®åŠ å¿« Windows å’Œ Linux çš„æž„å»ºé€Ÿåº¦ã€‚
           targets: ${{ startsWith(matrix.os, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
