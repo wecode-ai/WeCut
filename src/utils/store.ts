@@ -87,6 +87,11 @@ const initStore = async () => {
     clipboardStore.activeTagId = clipboardStore.ui.activeTagId;
   }
 
+  // 数据迁移：老用户默认已完成引导（从文件恢复后仍不存在 hasCompletedOnboarding 表示是老用户）
+  if (globalStore.app.hasCompletedOnboarding === undefined) {
+    globalStore.app.hasCompletedOnboarding = true;
+  }
+
   await mkdir(globalStore.env.saveDataDir, { recursive: true });
 };
 

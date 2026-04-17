@@ -19,6 +19,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::show_send_modal_window,
             commands::hide_send_modal_window,
             commands::close_send_modal_window,
+            commands::show_onboarding_window,
+            commands::hide_onboarding_window,
         ])
         .build()
 }
