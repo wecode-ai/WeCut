@@ -205,6 +205,7 @@ pub fn run() {
             screenshot::close_pin_window,
             screenshot::ocr_image,
             screenshot::get_window_list,
+            screenshot::copy_image_to_clipboard,
         ])
         .on_window_event(|window, event| match event {
             // 让 app 保持在后台运行：https://tauri.app/v1/guides/features/system-tray/#preventing-the-app-from-closing

@@ -1197,3 +1197,202 @@ pub async fn ocr_image(image_data_url: String) -> Result<String, String> {
 
     ocr_with_vision(&final_bytes)
 }
+/// macOS: 使用 cocoa 原生 API
+#[cfg(target_os = "macos")]
+#[tauri::command]
+#[allow(deprecated)]
+pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), String> {
+    use cocoa::appkit::NSPasteboard;
+    use cocoa::base::{id, nil};
+    use cocoa::foundation::{NSArray, NSData, NSString};
+
+    let started_at = std::time::Instant::now();
+    log::info!("[clipboard][rust] copy_image:start");
+
+    let base64_part = image_data_url
+        .split(',')
+        .nth(1)
+        .ok_or_else(|| "无效的 data URL 格式".to_string())?;
+
+    let decode_started_at = std::time::Instant::now();
+    let image_bytes = STANDARD
+        .decode(base64_part)
+        .map_err(|e| format!("base64 解码失败: {}", e))?;
+    let decode_elapsed_ms = decode_started_at.elapsed().as_millis();
+
+    let write_started_at = std::time::Instant::now();
+    #[allow(deprecated)]
+    unsafe {
+        let pasteboard: id = NSPasteboard::generalPasteboard(nil);
+        pasteboard.clearContents();
+
+        let ns_data: id = NSData::dataWithBytes_length_(
+            nil,
+            image_bytes.as_ptr() as *const std::ffi::c_void,
+            image_bytes.len() as u64,
+        );
+
+        let ns_type = NSString::alloc(nil).init_str("public.png");
+        let types = NSArray::arrayWithObject(nil, ns_type);
+        pasteboard.declareTypes_owner(types, nil);
+
+        let result = pasteboard.setData_forType(ns_data, ns_type);
+        if !result {
+            return Err("写入剪贴板失败".to_string());
+        }
+    }
+    let write_elapsed_ms = write_started_at.elapsed().as_millis();
+
+    let total_elapsed_ms = started_at.elapsed().as_millis();
+    log::info!(
+        "[clipboard][rust] copy_image:done decode_ms={} write_ms={} total_ms={}",
+        decode_elapsed_ms,
+        write_elapsed_ms,
+        total_elapsed_ms
+    );
+
+    Ok(())
+}
+
+/// Windows: 使用 Win32 API
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), String> {
+    use windows::Win32::Foundation::{HGLOBAL, HWND};
+    use windows::Win32::System::DataExchange::{CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData};
+    use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE, GMEM_ZEROINIT};
+
+    let started_at = std::time::Instant::now();
+    log::info!("[clipboard][rust] copy_image:start");
+
+    let base64_part = image_data_url
+        .split(',')
+        .nth(1)
+        .ok_or_else(|| "无效的 data URL 格式".to_string())?;
+
+    let decode_started_at = std::time::Instant::now();
+    let image_bytes = STANDARD
+        .decode(base64_part)
+        .map_err(|e| format!("base64 解码失败: {}", e))?;
+    let decode_elapsed_ms = decode_started_at.elapsed().as_millis();
+
+    let write_started_at = std::time::Instant::now();
+
+    let img = image::load_from_memory(&image_bytes)
+        .map_err(|e| format!("加载图片失败: {}", e))?;
+    let rgba = img.to_rgba8();
+    let (width, height) = rgba.dimensions();
+
+    unsafe {
+        OpenClipboard(HWND(std::ptr::null_mut()))
+            .map_err(|e| format!("打开剪贴板失败: {:?}", e))?;
+
+        EmptyClipboard().map_err(|e| format!("清空剪贴板失败: {:?}", e))?;
+
+        let bi_size = std::mem::size_of::<BITMAPINFOHEADER>();
+        let row_size = ((width * 4 + 3) / 4) * 4;
+        let pixel_data_size = (row_size * height) as usize;
+        let total_size = bi_size + pixel_data_size;
+
+        let h_global: HGLOBAL = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, total_size)
+            .map_err(|_| "分配内存失败".to_string())?;
+
+        let ptr = GlobalLock(h_global) as *mut u8;
+        if ptr.is_null() {
+            return Err("锁定内存失败".to_string());
+        }
+
+        let bi = ptr as *mut BITMAPINFOHEADER;
+        (*bi).biSize = bi_size as u32;
+        (*bi).biWidth = width as i32;
+        (*bi).biHeight = height as i32;
+        (*bi).biPlanes = 1;
+        (*bi).biBitCount = 32;
+        (*bi).biCompression = 0;
+        (*bi).biSizeImage = pixel_data_size as u32;
+        (*bi).biXPelsPerMeter = 0;
+        (*bi).biYPelsPerMeter = 0;
+        (*bi).biClrUsed = 0;
+        (*bi).biClrImportant = 0;
+
+        let pixel_ptr = ptr.add(bi_size);
+        for y in 0..height {
+            for x in 0..width {
+                let src_idx = ((height - 1 - y) * width + x) as usize * 4;
+                let dst_idx = (y * row_size + x * 4) as usize;
+                let r = rgba[src_idx];
+                let g = rgba[src_idx + 1];
+                let b = rgba[src_idx + 2];
+                let a = rgba[src_idx + 3];
+                *pixel_ptr.add(dst_idx) = b;
+                *pixel_ptr.add(dst_idx + 1) = g;
+                *pixel_ptr.add(dst_idx + 2) = r;
+                *pixel_ptr.add(dst_idx + 3) = a;
+            }
+        }
+
+        GlobalUnlock(h_global);
+
+        const CF_DIB: u32 = 8;
+        SetClipboardData(CF_DIB, Some(h_global.into()))
+            .map_err(|e| format!("设置剪贴板数据失败: {:?}", e))?;
+
+        CloseClipboard().map_err(|e| format!("关闭剪贴板失败: {:?}", e))?;
+    }
+
+    let write_elapsed_ms = write_started_at.elapsed().as_millis();
+
+    let total_elapsed_ms = started_at.elapsed().as_millis();
+    log::info!(
+        "[clipboard][rust] copy_image:done decode_ms={} write_ms={} total_ms={}",
+        decode_elapsed_ms,
+        write_elapsed_ms,
+        total_elapsed_ms
+    );
+
+    Ok(())
+}
+
+/// Linux: 使用 clipboard-rs
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[tauri::command]
+pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), String> {
+    use clipboard_rs::{Clipboard, ClipboardContent, ClipboardContext, RustImageData};
+    use clipboard_rs::common::RustImage;
+
+    let started_at = std::time::Instant::now();
+    log::info!("[clipboard][rust] copy_image:start");
+
+    let base64_part = image_data_url
+        .split(',')
+        .nth(1)
+        .ok_or_else(|| "无效的 data URL 格式".to_string())?;
+
+    let decode_started_at = std::time::Instant::now();
+    let image_bytes = STANDARD
+        .decode(base64_part)
+        .map_err(|e| format!("base64 解码失败: {}", e))?;
+    let decode_elapsed_ms = decode_started_at.elapsed().as_millis();
+
+    let load_started_at = std::time::Instant::now();
+    let image = RustImageData::from_bytes(&image_bytes)
+        .map_err(|e| format!("加载图片失败: {}", e))?;
+    let load_elapsed_ms = load_started_at.elapsed().as_millis();
+
+    let write_started_at = std::time::Instant::now();
+    let ctx = ClipboardContext::new().map_err(|e| format!("获取剪贴板上下文失败: {}", e))?;
+    ctx.set(vec![ClipboardContent::Image(image)])
+        .map_err(|e| format!("写入剪贴板失败: {}", e))?;
+    let write_elapsed_ms = write_started_at.elapsed().as_millis();
+
+    let total_elapsed_ms = started_at.elapsed().as_millis();
+    log::info!(
+        "[clipboard][rust] copy_image:done decode_ms={} load_ms={} write_ms={} total_ms={}",
+        decode_elapsed_ms,
+        load_elapsed_ms,
+        write_elapsed_ms,
+        total_elapsed_ms
+    );
+
+    Ok(())
+}
