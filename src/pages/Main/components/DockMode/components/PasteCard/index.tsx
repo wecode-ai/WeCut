@@ -535,7 +535,7 @@ const PasteCard: FC<PasteCardProps> = (props) => {
     <button
       className={clsx(
         "group flex shrink-0 flex-col overflow-hidden rounded-[28px] border bg-white text-left transition-[transform,box-shadow] duration-150",
-        "hover:-translate-y-1 shadow-[0_14px_32px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_42px_rgba(15,23,42,0.14)]",
+        "shadow-[0_14px_32px_rgba(15,23,42,0.08)] hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(15,23,42,0.14)]",
         {
           "border-primary shadow-[0_22px_56px_rgba(59,130,246,0.22)] ring-2 ring-primary/15":
             active,

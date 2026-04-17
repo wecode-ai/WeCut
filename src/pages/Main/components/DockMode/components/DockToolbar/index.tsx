@@ -227,7 +227,7 @@ const DockToolbar: FC<DockToolbarProps> = (props) => {
                 className={clsx(
                   "shrink-0 rounded-full px-3 py-1 text-xs transition",
                   active
-                    ? "hover:-translate-y-0.5 bg-primary text-white shadow-[0_10px_24px_rgba(59,130,246,0.28)] hover:shadow-[0_14px_28px_rgba(59,130,246,0.34)]"
+                    ? "bg-primary text-white shadow-[0_10px_24px_rgba(59,130,246,0.28)] hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(59,130,246,0.34)]"
                     : "border border-slate-200 bg-slate-50/90 text-color-2 hover:border-primary/30 hover:bg-white hover:text-color-1",
                 )}
                 key={item.id}
@@ -316,7 +316,7 @@ const DockToolbar: FC<DockToolbarProps> = (props) => {
                 className={clsx(
                   "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs transition",
                   active
-                    ? "hover:-translate-y-0.5 text-white shadow-[0_10px_24px_rgba(59,130,246,0.28)] hover:shadow-[0_14px_28px_rgba(59,130,246,0.34)]"
+                    ? "text-white shadow-[0_10px_24px_rgba(59,130,246,0.28)] hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(59,130,246,0.34)]"
                     : "border border-slate-200 bg-slate-50/90 text-color-2 hover:border-primary/30 hover:bg-white hover:text-color-1",
                 )}
                 key={tag.id}
