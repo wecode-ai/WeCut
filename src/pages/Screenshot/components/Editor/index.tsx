@@ -2,6 +2,7 @@ import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { message } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { getCanvasPixelSize } from "@/utils/canvas-hidpi";
+import { logPerf } from "@/utils/perf-log";
 import {
   copyImageToClipboard,
   hideScreenshotWindow,
@@ -123,12 +124,30 @@ const Editor: React.FC<EditorProps> = ({
   };
 
   const handleCopy = async () => {
+    const startedAt = performance.now();
+    logPerf("[clipboard][ui] handleCopy:start");
     try {
       const dataUrl = getFinalDataUrl();
+      const getDataUrlElapsedMs = Math.round(performance.now() - startedAt);
+      logPerf("[clipboard][ui] handleCopy:dataUrl_ready", {
+        dataUrlLength: dataUrl.length,
+        getDataUrlElapsedMs,
+      });
+
       await copyImageToClipboard(dataUrl);
+      const copyDoneElapsedMs = Math.round(performance.now() - startedAt);
+      logPerf("[clipboard][ui] handleCopy:copy_done", { copyDoneElapsedMs });
+
       message.success("Copied to clipboard");
       await hideScreenshotWindow();
+      const totalElapsedMs = Math.round(performance.now() - startedAt);
+      logPerf("[clipboard][ui] handleCopy:done", { totalElapsedMs });
     } catch (_err) {
+      const errorElapsedMs = Math.round(performance.now() - startedAt);
+      logPerf("[clipboard][ui] handleCopy:failed", {
+        error: String(_err),
+        errorElapsedMs,
+      });
       message.error("Failed to copy");
     }
   };

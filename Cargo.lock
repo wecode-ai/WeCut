@@ -7,6 +7,8 @@ name = "WeCut"
 version = "0.6.0-beta.3"
 dependencies = [
  "base64 0.22.1",
+ "clipboard-rs",
+ "cocoa 0.26.1",
  "core-foundation 0.10.1",
  "core-graphics 0.24.0",
  "foreign-types-shared 0.3.1",
@@ -41,6 +43,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tokio",
  "urlencoding",
+ "windows 0.58.0",
  "xcap",
 ]
 
