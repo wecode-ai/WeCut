@@ -150,10 +150,10 @@
         "open_source_address": "Open Source Address",
         "preference": "Preference",
         "relaunch": "Relaunch",
+        "screenshot": "Screenshot",
         "start_listening": "Start Listening",
         "stop_listening": "Stop listening",
-        "version": "Version",
-        "screenshot": "Screenshot"
+        "version": "Version"
       }
     }
   },
@@ -173,6 +173,10 @@
       "authorize": "Authorize",
       "authorized": "Authorized",
       "full_disk_access": {
+        "cancel": "Cancel",
+        "confirm": "Go to System Settings",
+        "confirm_message": "Full Disk Access permission needs to be enabled manually in System Settings. Clicking \"Go to System Settings\" will open System Preferences.",
+        "confirm_title": "Full Disk Access Required",
         "description": "Used for reading files in protected directories",
         "title": "Full Disk Access"
       },
@@ -457,9 +461,9 @@
         "general": "General",
         "history": "History",
         "privacy": "Privacy",
+        "screenshot": "Screenshot",
         "shortcut": "Shortcuts",
-        "tag": "Tags",
-        "screenshot": "Screenshot"
+        "tag": "Tags"
       }
     },
     "privacy": {
@@ -480,6 +484,50 @@
         "description": "We highly value your privacy and security. All data processing is done locally",
         "label": "Privacy Consideration",
         "title": "Privacy Consideration"
+      }
+    },
+    "screenshot": {
+      "editor": {
+        "action": {
+          "cancel": "Cancel",
+          "copy": "Copy",
+          "redo": "Redo",
+          "save": "Save",
+          "send": "Send to Wegent",
+          "undo": "Undo"
+        },
+        "hint": {
+          "copy_success": "Copied to clipboard",
+          "permission_denied": "Screenshot permission denied. Please authorize Screen Recording in System Settings.",
+          "save_success": "Screenshot saved",
+          "send_title": "Send Screenshot"
+        },
+        "tool": {
+          "arrow": "Arrow",
+          "ellipse": "Ellipse",
+          "mosaic": "Mosaic",
+          "pen": "Pen",
+          "rect": "Rectangle",
+          "text": "Text"
+        }
+      },
+      "settings": {
+        "default_action": {
+          "copy": "Copy Directly",
+          "menu": "Show Action Menu",
+          "save": "Save Directly"
+        },
+        "hints": {
+          "default_action": "Default action after taking a screenshot",
+          "save_format": "Image format when saving screenshots",
+          "save_to_history": "Automatically save screenshot to clipboard history"
+        },
+        "label": {
+          "default_action": "Default Action After Screenshot",
+          "save_format": "Save Format",
+          "save_to_history": "Auto Save to History"
+        },
+        "title": "Screenshot Settings"
       }
     },
     "settings": {
@@ -554,8 +602,8 @@
           "copy_file_path": "Copy the file path of the selected item to clipboard when the window is activated",
           "paste_as_plain": "Paste selections as plain text or paths when the window is activated",
           "quick_paste": "Use number key combos to quickly paste top 9 items when window is hidden",
-          "send": "Send the selected item to AI API when the window is activated",
-          "screenshot": "Global shortcut key for taking screenshots"
+          "screenshot": "Global shortcut key for taking screenshots",
+          "send": "Send the selected item to AI API when the window is activated"
         },
         "label": {
           "copy_file_path": "Copy File Path",
@@ -563,8 +611,8 @@
           "open_settings": "Open Preferences Window",
           "paste_as_plain": "Paste as Plain Text",
           "quick_paste": "Quick Paste",
-          "send": "Send to AI",
-          "screenshot": "Screenshot"
+          "screenshot": "Screenshot",
+          "send": "Send to AI"
         },
         "title": "Shortcuts"
       }
@@ -590,51 +638,7 @@
       "trigger_word_placeholder": "e.g., u123",
       "trigger_word_required": "Please enter a trigger word"
     },
-    "title": "Preferences",
-    "screenshot": {
-      "settings": {
-        "title": "Screenshot Settings",
-        "label": {
-          "save_to_history": "Auto Save to History",
-          "default_action": "Default Action After Screenshot",
-          "save_format": "Save Format"
-        },
-        "hints": {
-          "save_to_history": "Automatically save screenshot to clipboard history",
-          "default_action": "Default action after taking a screenshot",
-          "save_format": "Image format when saving screenshots"
-        },
-        "default_action": {
-          "menu": "Show Action Menu",
-          "copy": "Copy Directly",
-          "save": "Save Directly"
-        }
-      },
-      "editor": {
-        "tool": {
-          "rect": "Rectangle",
-          "ellipse": "Ellipse",
-          "arrow": "Arrow",
-          "text": "Text",
-          "pen": "Pen",
-          "mosaic": "Mosaic"
-        },
-        "action": {
-          "cancel": "Cancel",
-          "copy": "Copy",
-          "save": "Save",
-          "send": "Send to Wegent",
-          "undo": "Undo",
-          "redo": "Redo"
-        },
-        "hint": {
-          "copy_success": "Copied to clipboard",
-          "save_success": "Screenshot saved",
-          "send_title": "Send Screenshot",
-          "permission_denied": "Screenshot permission denied. Please authorize Screen Recording in System Settings."
-        }
-      }
-    }
+    "title": "Preferences"
   },
   "tag": {
     "color_label": "Tag Color",

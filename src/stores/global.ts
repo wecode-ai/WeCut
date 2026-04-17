@@ -5,10 +5,10 @@ import { isMac } from "@/utils/is";
 export const globalStore = proxy<GlobalStore>({
   app: {
     autoStart: false,
+    hasCompletedOnboarding: false,
     showMenubarIcon: true,
     showTaskbarIcon: false,
     silentStart: false,
-    hasCompletedOnboarding: false,
   },
 
   appearance: {
@@ -22,7 +22,7 @@ export const globalStore = proxy<GlobalStore>({
     defaultAction: "menu",
     saveFormat: "png",
     saveToHistory: true,
-    shortcut: isMac ? "Command+Control+KeyA" : "Control+Alt+KeyA",
+    shortcut: isMac ? "Command+Control+A" : "Control+Alt+A",
   },
 
   shortcut: {
@@ -34,7 +34,7 @@ export const globalStore = proxy<GlobalStore>({
       enable: false,
       value: "Command+Shift",
     },
-    screenshot: isMac ? "Command+Control+KeyA" : "Control+Alt+KeyA",
+    screenshot: isMac ? "Command+Control+A" : "Control+Alt+A",
     // 兼容旧配置
     send: "",
     wegent: {
