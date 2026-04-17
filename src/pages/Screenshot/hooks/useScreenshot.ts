@@ -1,12 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
-import { join } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { save } from "@tauri-apps/plugin-dialog";
-import { mkdir, remove, writeFile } from "@tauri-apps/plugin-fs";
-import {
-  getDefaultSaveImagePath,
-  writeImage,
-} from "tauri-plugin-clipboard-x-api";
+import { writeFile } from "@tauri-apps/plugin-fs";
+import { logPerf } from "@/utils/perf-log";
 import {
   mapScreenshotPreviewPayload,
   type ScreenshotPreviewPayload,
@@ -237,24 +233,16 @@ export const ocrImage = async (imageDataUrl: string): Promise<OcrBlock[]> => {
 
 /**
  * Copy an image (given as a data URL) to the system clipboard.
+ * Uses a direct Rust command to avoid disk IO.
  */
 export const copyImageToClipboard = async (dataUrl: string): Promise<void> => {
-  const base64 = dataUrl.split(",")[1];
-  if (!base64) throw new Error("Invalid data URL");
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
+  logPerf("[clipboard][ui] copy_image:start", {
+    dataUrlLength: dataUrl.length,
+  });
 
-  const dir = (await getDefaultSaveImagePath()) as string;
-  await mkdir(dir, { recursive: true });
-  const tmpPath = await join(dir, `_screenshot_tmp_${Date.now()}.png`);
-  await writeFile(tmpPath, bytes);
+  const startedAt = performance.now();
+  await invoke("copy_image_to_clipboard", { imageDataUrl: dataUrl });
+  const elapsedMs = Math.round(performance.now() - startedAt);
 
-  try {
-    await writeImage(tmpPath);
-  } finally {
-    remove(tmpPath).catch(() => {});
-  }
+  logPerf("[clipboard][ui] copy_image:done", { elapsedMs });
 };
