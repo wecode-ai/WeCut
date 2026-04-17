@@ -7,6 +7,8 @@ const COMMANDS: &[&str] = &[
     "show_send_modal_window",
     "hide_send_modal_window",
     "close_send_modal_window",
+    "show_onboarding_window",
+    "hide_onboarding_window",
 ];
 
 fn main() {
