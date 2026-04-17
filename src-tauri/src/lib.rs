@@ -90,7 +90,10 @@ async fn send_to_work_queue(
         .await
         .map_err(|e| format!("请求失败: {}", e))?;
 
-    log::info!("[send_to_work_queue] Response status: {}", response.status());
+    log::info!(
+        "[send_to_work_queue] Response status: {}",
+        response.status()
+    );
 
     if response.status().is_success() {
         Ok(())
@@ -190,11 +193,13 @@ pub fn run() {
             plugins::text_expansion::commands::set_text_expansions,
             plugins::text_expansion::commands::set_text_expansion_enabled,
             screenshot::get_monitors,
+            screenshot::get_monitor_id_from_point,
             screenshot::capture_screen,
             screenshot::show_screenshot_window,
             screenshot::hide_screenshot_window,
             screenshot::pin_screenshot_window,
             screenshot::get_screenshot_data,
+            screenshot::get_screenshot_crop,
             screenshot::create_pin_window,
             screenshot::get_pin_data,
             screenshot::close_pin_window,

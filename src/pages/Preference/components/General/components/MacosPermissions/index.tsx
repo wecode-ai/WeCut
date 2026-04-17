@@ -4,8 +4,10 @@ import { useTranslation } from "react-i18next";
 import {
   checkAccessibilityPermission,
   checkFullDiskAccessPermission,
+  checkScreenRecordingPermission,
   requestAccessibilityPermission,
   requestFullDiskAccessPermission,
+  requestScreenRecordingPermission,
 } from "tauri-plugin-macos-permissions-api";
 import ProList from "@/components/ProList";
 import ProListItem from "@/components/ProListItem";
@@ -17,6 +19,7 @@ const MacosPermissions = () => {
   const state = useReactive({
     accessibilityPermission: false,
     fullDiskAccessPermission: false,
+    screenRecordingPermission: false,
   });
 
   useMount(() => {
@@ -28,6 +31,7 @@ const MacosPermissions = () => {
   const refreshPermissions = async () => {
     state.accessibilityPermission = await checkAccessibilityPermission();
     state.fullDiskAccessPermission = await checkFullDiskAccessPermission();
+    state.screenRecordingPermission = await checkScreenRecordingPermission();
   };
 
   // 请求辅助功能权限（用户主动点击授权）
@@ -74,6 +78,22 @@ const MacosPermissions = () => {
       state.fullDiskAccessPermission = await checkFullDiskAccessPermission();
 
       if (state.fullDiskAccessPermission) return;
+
+      setTimeout(check, 1000);
+    };
+
+    check();
+  };
+
+  // 请求屏幕录制权限（用户主动点击授权）
+  const handleRequestScreenRecording = async () => {
+    await requestScreenRecordingPermission();
+
+    // 轮询检查权限是否已授予
+    const check = async () => {
+      state.screenRecordingPermission = await checkScreenRecordingPermission();
+
+      if (state.screenRecordingPermission) return;
 
       setTimeout(check, 1000);
     };
@@ -135,6 +155,22 @@ const MacosPermissions = () => {
         {renderStatus(
           state.fullDiskAccessPermission,
           handleRequestFullDiskAccess,
+        )}
+      </ProListItem>
+
+      <ProListItem
+        description={t(
+          "preference.settings.permission_settings.hints.screen_recording_permissions",
+          "截图功能需要屏幕录制权限才能正常工作",
+        )}
+        title={t(
+          "preference.settings.permission_settings.label.screen_recording_permissions",
+          "屏幕录制权限",
+        )}
+      >
+        {renderStatus(
+          state.screenRecordingPermission,
+          handleRequestScreenRecording,
         )}
       </ProListItem>
     </ProList>
