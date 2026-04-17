@@ -150,10 +150,10 @@
         "open_source_address": "开源地址",
         "preference": "偏好设置",
         "relaunch": "重启应用",
+        "screenshot": "截图",
         "start_listening": "开启监听",
         "stop_listening": "停止监听",
-        "version": "版本",
-        "screenshot": "截图"
+        "version": "版本"
       }
     }
   },
@@ -173,6 +173,10 @@
       "authorize": "去授权",
       "authorized": "已授权",
       "full_disk_access": {
+        "cancel": "取消",
+        "confirm": "前往系统设置",
+        "confirm_message": "完全磁盘访问权限需要在系统设置中手动开启。点击\"前往系统设置\"将打开系统偏好设置。",
+        "confirm_title": "需要完全磁盘访问权限",
         "description": "用于读取受保护路径下的文件内容",
         "title": "完全磁盘访问（Full Disk Access）"
       },
@@ -457,10 +461,10 @@
         "general": "通用设置",
         "history": "历史记录",
         "privacy": "隐私声明",
+        "screenshot": "截图",
         "shortcut": "快捷键",
         "tag": "标签管理",
-        "wegent": "Wegent集成",
-        "screenshot": "截图"
+        "wegent": "Wegent集成"
       }
     },
     "privacy": {
@@ -481,6 +485,50 @@
         "description": "我们高度重视您的隐私安全，所有数据处理均在本地完成",
         "label": "隐私性考虑",
         "title": "隐私性考虑"
+      }
+    },
+    "screenshot": {
+      "editor": {
+        "action": {
+          "cancel": "取消",
+          "copy": "复制",
+          "redo": "重做",
+          "save": "保存",
+          "send": "发送到 Wegent",
+          "undo": "撤销"
+        },
+        "hint": {
+          "copy_success": "已复制到剪贴板",
+          "permission_denied": "截图权限被拒绝，请在系统设置中授权屏幕录制权限",
+          "save_success": "截图已保存",
+          "send_title": "发送截图"
+        },
+        "tool": {
+          "arrow": "箭头",
+          "ellipse": "椭圆",
+          "mosaic": "马赛克",
+          "pen": "画笔",
+          "rect": "矩形",
+          "text": "文字"
+        }
+      },
+      "settings": {
+        "default_action": {
+          "copy": "直接复制",
+          "menu": "弹出操作菜单",
+          "save": "直接保存"
+        },
+        "hints": {
+          "default_action": "截图后的默认操作",
+          "save_format": "保存截图时的图片格式",
+          "save_to_history": "截图后自动将图片保存到剪贴板历史记录"
+        },
+        "label": {
+          "default_action": "截图后默认行为",
+          "save_format": "保存格式",
+          "save_to_history": "自动保存到历史记录"
+        },
+        "title": "截图设置"
       }
     },
     "settings": {
@@ -555,10 +603,10 @@
           "copy_file_path": "激活窗口时，复制选中条目的文件路径到剪贴板",
           "paste_as_plain": "激活窗口时，将选中的内容粘贴为纯文本或路径",
           "quick_paste": "隐藏窗口时，使用数字组合键快速粘贴前九项",
+          "screenshot": "全局截图快捷键，按下后弹出截图界面",
           "send": "激活窗口时，将选中的内容发送到 AI 接口",
           "send_ai_chat": "激活窗口时，将选中的内容发送到 WegentChat",
-          "send_work_queue": "激活窗口时，将选中的内容发送到 Wegent待办",
-          "screenshot": "全局截图快捷键，按下后弹出截图界面"
+          "send_work_queue": "激活窗口时，将选中的内容发送到 Wegent待办"
         },
         "label": {
           "copy_file_path": "复制文件路径",
@@ -566,11 +614,11 @@
           "open_settings": "打开偏好设置窗口",
           "paste_as_plain": "粘贴为纯文本",
           "quick_paste": "快速粘贴",
+          "screenshot": "截图",
           "send": "发送到 AI",
           "send_ai_chat": "发送到 WegentChat",
           "send_work_queue": "发送到 Wegent待办",
-          "wegent_group": "Wegent 发送",
-          "screenshot": "截图"
+          "wegent_group": "Wegent 发送"
         },
         "title": "快捷键"
       }
@@ -658,50 +706,6 @@
           "high": "高",
           "low": "低",
           "normal": "普通"
-        }
-      }
-    },
-    "screenshot": {
-      "settings": {
-        "title": "截图设置",
-        "label": {
-          "save_to_history": "自动保存到历史记录",
-          "default_action": "截图后默认行为",
-          "save_format": "保存格式"
-        },
-        "hints": {
-          "save_to_history": "截图后自动将图片保存到剪贴板历史记录",
-          "default_action": "截图后的默认操作",
-          "save_format": "保存截图时的图片格式"
-        },
-        "default_action": {
-          "menu": "弹出操作菜单",
-          "copy": "直接复制",
-          "save": "直接保存"
-        }
-      },
-      "editor": {
-        "tool": {
-          "rect": "矩形",
-          "ellipse": "椭圆",
-          "arrow": "箭头",
-          "text": "文字",
-          "pen": "画笔",
-          "mosaic": "马赛克"
-        },
-        "action": {
-          "cancel": "取消",
-          "copy": "复制",
-          "save": "保存",
-          "send": "发送到 Wegent",
-          "undo": "撤销",
-          "redo": "重做"
-        },
-        "hint": {
-          "copy_success": "已复制到剪贴板",
-          "save_success": "截图已保存",
-          "send_title": "发送截图",
-          "permission_denied": "截图权限被拒绝，请在系统设置中授权屏幕录制权限"
         }
       }
     }
