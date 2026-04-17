@@ -1200,6 +1200,7 @@ pub async fn ocr_image(image_data_url: String) -> Result<String, String> {
 /// macOS: 使用 cocoa 原生 API
 #[cfg(target_os = "macos")]
 #[tauri::command]
+#[allow(deprecated)]
 pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), String> {
     use cocoa::appkit::NSPasteboard;
     use cocoa::base::{id, nil};
@@ -1220,6 +1221,7 @@ pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), Strin
     let decode_elapsed_ms = decode_started_at.elapsed().as_millis();
 
     let write_started_at = std::time::Instant::now();
+    #[allow(deprecated)]
     unsafe {
         let pasteboard: id = NSPasteboard::generalPasteboard(nil);
         pasteboard.clearContents();
