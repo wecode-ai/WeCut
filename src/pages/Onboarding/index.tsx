@@ -1,5 +1,6 @@
 import { emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { useInterval } from "ahooks";
 import { Button, Card, Flex, Tooltip, Typography } from "antd";
 import { useEffect, useState } from "react";
@@ -53,16 +54,39 @@ const Onboarding = () => {
     setFullDiskAccessGranted(fullDisk);
   };
 
+  // 请求辅助功能权限
   const handleRequestAccessibility = async () => {
     await requestAccessibilityPermission();
+    // 立即检查一次，然后开始轮询
+    const granted = await checkAccessibilityPermission();
+    setAccessibilityGranted(granted);
   };
 
+  // 请求屏幕录制权限
   const handleRequestScreenRecording = async () => {
     await requestScreenRecordingPermission();
+    // 立即检查一次，然后开始轮询
+    const granted = await checkScreenRecordingPermission();
+    setScreenRecordingGranted(granted);
   };
 
+  // 请求完全磁盘访问权限（需要确认对话框）
   const handleRequestFullDiskAccess = async () => {
+    const confirmed = await confirm(
+      t("onboarding.permission.full_disk_access.confirm_message"),
+      {
+        cancelLabel: t("onboarding.permission.full_disk_access.cancel"),
+        okLabel: t("onboarding.permission.full_disk_access.confirm"),
+        title: t("onboarding.permission.full_disk_access.confirm_title"),
+      },
+    );
+
+    if (!confirmed) return;
+
     await requestFullDiskAccessPermission();
+    // 立即检查一次
+    const granted = await checkFullDiskAccessPermission();
+    setFullDiskAccessGranted(granted);
   };
 
   const handleComplete = async () => {

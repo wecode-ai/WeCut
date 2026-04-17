@@ -93,10 +93,10 @@
         "open_source_address": "開源地址",
         "preference": "偏好設定",
         "relaunch": "重啓應用",
+        "screenshot": "截圖",
         "start_listening": "開啟監聽",
         "stop_listening": "停止監聽",
-        "version": "版本",
-        "screenshot": "截圖"
+        "version": "版本"
       }
     }
   },
@@ -113,6 +113,10 @@
       "authorize": "去授權",
       "authorized": "已授權",
       "full_disk_access": {
+        "cancel": "取消",
+        "confirm": "前往系統設定",
+        "confirm_message": "完整磁碟存取權限需要在系統設定中手動開啟。點擊「前往系統設定」將開啟系統偏好設定。",
+        "confirm_title": "需要完整磁碟存取權限",
         "description": "用於讀取受保護路徑下的檔案內容",
         "title": "完整磁碟存取（Full Disk Access）"
       },
@@ -341,8 +345,8 @@
         "general": "通用設定",
         "history": "歷史記錄",
         "privacy": "隱私聲明",
-        "shortcut": "快捷鍵",
-        "screenshot": "截圖"
+        "screenshot": "截圖",
+        "shortcut": "快捷鍵"
       }
     },
     "privacy": {
@@ -363,6 +367,50 @@
         "description": "我們高度重視您的隱私安全，所有數據處理均在本地完成",
         "label": "隱私性考慮",
         "title": "隱私性考慮"
+      }
+    },
+    "screenshot": {
+      "editor": {
+        "action": {
+          "cancel": "取消",
+          "copy": "複製",
+          "redo": "重做",
+          "save": "儲存",
+          "send": "傳送到 Wegent",
+          "undo": "復原"
+        },
+        "hint": {
+          "copy_success": "已複製到剪貼簿",
+          "permission_denied": "截圖權限被拒絕，請在系統設定中授權螢幕錄製權限",
+          "save_success": "截圖已儲存",
+          "send_title": "傳送截圖"
+        },
+        "tool": {
+          "arrow": "Arrow",
+          "ellipse": "Ellipse",
+          "mosaic": "Mosaic",
+          "pen": "Pen",
+          "rect": "Rectangle",
+          "text": "Text"
+        }
+      },
+      "settings": {
+        "default_action": {
+          "copy": "直接複製",
+          "menu": "彈出操作選單",
+          "save": "直接儲存"
+        },
+        "hints": {
+          "default_action": "截圖後的預設操作",
+          "save_format": "儲存截圖時的圖片格式",
+          "save_to_history": "截圖後自動將圖片儲存到剪貼簿歷史記錄"
+        },
+        "label": {
+          "default_action": "截圖後預設行為",
+          "save_format": "儲存格式",
+          "save_to_history": "自動儲存到歷史記錄"
+        },
+        "title": "截圖設定"
       }
     },
     "settings": {
@@ -437,8 +485,8 @@
           "copy_file_path": "啟動視窗時，複製選中條目的檔案路徑到剪貼簿",
           "paste_as_plain": "啟動視窗時，將選中的內容粘貼為純文字或路徑",
           "quick_paste": "隱藏視窗時，使用數字鍵快速貼上前九項",
-          "send": "啟動視窗時，將選中的內容傳送到 AI 介面",
-          "screenshot": "全域截圖快捷鍵，按下後彈出截圖介面"
+          "screenshot": "全域截圖快捷鍵，按下後彈出截圖介面",
+          "send": "啟動視窗時，將選中的內容傳送到 AI 介面"
         },
         "label": {
           "copy_file_path": "複製檔案路徑",
@@ -446,57 +494,13 @@
           "open_settings": "打開偏好設定視窗",
           "paste_as_plain": "貼上為純文字",
           "quick_paste": "快速貼上",
-          "send": "傳送到 AI",
-          "screenshot": "截圖"
+          "screenshot": "截圖",
+          "send": "傳送到 AI"
         },
         "title": "快捷鍵"
       }
     },
-    "title": "偏好設定",
-    "screenshot": {
-      "settings": {
-        "title": "截圖設定",
-        "label": {
-          "save_to_history": "自動儲存到歷史記錄",
-          "default_action": "截圖後預設行為",
-          "save_format": "儲存格式"
-        },
-        "hints": {
-          "save_to_history": "截圖後自動將圖片儲存到剪貼簿歷史記錄",
-          "default_action": "截圖後的預設操作",
-          "save_format": "儲存截圖時的圖片格式"
-        },
-        "default_action": {
-          "menu": "彈出操作選單",
-          "copy": "直接複製",
-          "save": "直接儲存"
-        }
-      },
-      "editor": {
-        "tool": {
-          "rect": "Rectangle",
-          "ellipse": "Ellipse",
-          "arrow": "Arrow",
-          "text": "Text",
-          "pen": "Pen",
-          "mosaic": "Mosaic"
-        },
-        "action": {
-          "cancel": "取消",
-          "copy": "複製",
-          "save": "儲存",
-          "send": "傳送到 Wegent",
-          "undo": "復原",
-          "redo": "重做"
-        },
-        "hint": {
-          "copy_success": "已複製到剪貼簿",
-          "save_success": "截圖已儲存",
-          "send_title": "傳送截圖",
-          "permission_denied": "截圖權限被拒絕，請在系統設定中授權螢幕錄製權限"
-        }
-      }
-    }
+    "title": "偏好設定"
   },
   "tag": {
     "color_label": "標籤顏色",
