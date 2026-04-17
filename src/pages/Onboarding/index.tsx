@@ -1,10 +1,9 @@
 import { emit } from "@tauri-apps/api/event";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useInterval } from "ahooks";
 import { Button, Card, Flex, Tooltip, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import {
   checkAccessibilityPermission,
   checkFullDiskAccessPermission,
@@ -25,7 +24,6 @@ const GITHUB_URL = "https://github.com/wecode-ai/WeCut";
 
 const Onboarding = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const [accessibilityGranted, setAccessibilityGranted] = useState(false);
   const [screenRecordingGranted, setScreenRecordingGranted] = useState(false);
@@ -70,25 +68,31 @@ const Onboarding = () => {
   const handleComplete = async () => {
     globalStore.app.hasCompletedOnboarding = true;
     await saveStore();
-    navigate("/");
+    // 关闭引导窗口，显示主窗口
+    const window = getCurrentWebviewWindow();
+    await window.close();
+    showWindow(WINDOW_LABEL.MAIN);
   };
 
   const handleOpenPreference = async () => {
     globalStore.app.hasCompletedOnboarding = true;
     await saveStore();
-    navigate("/");
+    // 关闭引导窗口
+    const window = getCurrentWebviewWindow();
+    await window.close();
     // 通知偏好设置窗口切换到 Wegent 集成 tab
     await showWindow(WINDOW_LABEL.PREFERENCE as any);
     await emit(LISTEN_KEY.PREFERENCE_NAVIGATE, "wegent");
   };
 
-  const renderPermissionStatus = (
-    granted: boolean,
-    onRequest: () => void,
-  ) => {
+  const renderPermissionStatus = (granted: boolean, onRequest: () => void) => {
     if (granted) {
       return (
-        <Flex align="center" gap={6} className="text-green-500 font-bold">
+        <Flex
+          align="center"
+          className="shrink-0 font-bold text-green-500"
+          gap={6}
+        >
           <UnoIcon name="i-lucide:circle-check" />
           <span>{t("onboarding.permission.authorized")}</span>
         </Flex>
@@ -97,11 +101,11 @@ const Onboarding = () => {
 
     return (
       <Button
+        className="shrink-0 border-orange-400! text-orange-500!"
         icon={<UnoIcon name="i-lucide:circle-arrow-right" />}
         onClick={onRequest}
         size="small"
         type="default"
-        className="border-orange-400! text-orange-500!"
       >
         {t("onboarding.permission.authorize")}
       </Button>
@@ -110,132 +114,142 @@ const Onboarding = () => {
 
   const permissions = [
     {
-      key: "accessibility",
-      title: t("onboarding.permission.accessibility.title"),
       description: t("onboarding.permission.accessibility.description"),
       granted: accessibilityGranted,
+      key: "accessibility",
       onRequest: handleRequestAccessibility,
+      title: t("onboarding.permission.accessibility.title"),
     },
     {
-      key: "screenRecording",
-      title: t("onboarding.permission.screen_recording.title"),
       description: t("onboarding.permission.screen_recording.description"),
       granted: screenRecordingGranted,
+      key: "screenRecording",
       onRequest: handleRequestScreenRecording,
+      title: t("onboarding.permission.screen_recording.title"),
     },
     {
-      key: "fullDiskAccess",
-      title: t("onboarding.permission.full_disk_access.title"),
       description: t("onboarding.permission.full_disk_access.description"),
       granted: fullDiskAccessGranted,
+      key: "fullDiskAccess",
       onRequest: handleRequestFullDiskAccess,
+      title: t("onboarding.permission.full_disk_access.title"),
     },
   ];
 
   return (
-    <Flex
-      className="min-h-screen bg-color-2 pb-24"
-      justify="center"
-      data-tauri-drag-region
-    >
-      <Flex
-        className="w-full max-w-2xl px-8 pt-12"
-        gap={32}
-        vertical
-      >
-        {/* 区块 1：开源与隐私声明 */}
-        <Flex align="center" gap={16} vertical className="text-center">
-          <img
-            alt="WeCut"
-            className="h-16 w-16 rounded-2xl shadow-md"
-            src="/logo.png"
-          />
-          <div>
-            <Title level={2} className="mb-1!">
-              WeCut
-            </Title>
-            <Paragraph className="text-color-3 text-base mx-auto max-w-md">
-              {t("onboarding.privacy.description")}
-            </Paragraph>
-          </div>
-          <a href={GITHUB_URL}>
-            <Button icon={<UnoIcon name="i-lucide:github" />} type="default">
-              {t("onboarding.privacy.view_source")}
-            </Button>
-          </a>
-        </Flex>
-
-        {/* 区块 2：macOS 权限引导 */}
-        <div>
-          <Title level={4} className="mb-4!">
-            {t("onboarding.permissions.title")}
-          </Title>
-          <Paragraph className="text-color-3 mb-4!">
-            {t("onboarding.permissions.description")}
-          </Paragraph>
-          <Flex gap={12} vertical>
-            {permissions.map(({ key, title, description, granted, onRequest }) => (
-              <Card
-                key={key}
-                size="small"
-                className={
-                  granted
-                    ? "border-green-400!"
-                    : "border-orange-400!"
-                }
-              >
-                <Flex align="center" justify="space-between">
-                  <Flex align="flex-start" gap={10} vertical={false}>
-                    <UnoIcon
-                      name={
-                        granted
-                          ? "i-lucide:shield-check"
-                          : "i-lucide:shield-alert"
-                      }
-                      size={20}
-                      className={granted ? "text-green-500 mt-0.5" : "text-orange-500 mt-0.5"}
-                    />
-                    <div>
-                      <Text strong>{title}</Text>
-                      <br />
-                      <Text className="text-color-3 text-xs">{description}</Text>
-                    </div>
-                  </Flex>
-                  {renderPermissionStatus(granted, onRequest)}
-                </Flex>
-              </Card>
-            ))}
-          </Flex>
-        </div>
-
-        {/* 区块 3：Wegent Key 配置（可选） */}
-        <Card className="border-dashed!">
-          <Flex align="flex-start" gap={12} vertical={false}>
-            <UnoIcon
-              name="i-lucide:key"
-              size={20}
-              className="text-color-3 mt-0.5 shrink-0"
+    <div className="flex h-full flex-col bg-color-2" data-tauri-drag-region>
+      {/* 可滚动内容区 */}
+      <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="mx-auto flex max-w-2xl flex-col gap-5">
+          {/* 区块 1：开源与隐私声明 */}
+          <Flex align="center" className="text-center" gap={12} vertical>
+            <img
+              alt="WeCut"
+              className="h-14 w-14 rounded-xl shadow-md"
+              src="/logo.png"
             />
-            <div className="flex-1">
-              <Text strong>{t("onboarding.wegent.title")}</Text>
-              <Paragraph className="text-color-3 text-xs mt-1! mb-3!">
-                {t("onboarding.wegent.description")}
+            <div>
+              <Title className="mt-0! mb-1!" level={3}>
+                WeCut
+              </Title>
+              <Paragraph className="mx-auto mb-2! max-w-md text-color-3 text-sm">
+                {t("onboarding.privacy.description")}
               </Paragraph>
-              <Button
-                icon={<UnoIcon name="i-lucide:settings" />}
-                onClick={handleOpenPreference}
-                size="small"
-              >
-                {t("onboarding.wegent.goto_preference")}
-              </Button>
             </div>
+            <a href={GITHUB_URL}>
+              <Button
+                icon={<UnoIcon name="i-lucide:github" />}
+                size="small"
+                type="default"
+              >
+                {t("onboarding.privacy.view_source")}
+              </Button>
+            </a>
           </Flex>
-        </Card>
-      </Flex>
 
-      {/* 底部固定操作区 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-color-2 border-t border-color-4 py-4 px-8">
-        <Flex align="center" justify="center" gap={12}>
+          {/* 区块 2：macOS 权限引导 */}
+          <div>
+            <Title className="mt-0! mb-3!" level={5}>
+              {t("onboarding.permissions.title")}
+            </Title>
+            <Paragraph className="mb-3! text-color-3 text-sm">
+              {t("onboarding.permissions.description")}
+            </Paragraph>
+            <Flex gap={10} vertical>
+              {permissions.map(
+                ({ key, title, description, granted, onRequest }) => (
+                  <Card
+                    bodyStyle={{ padding: "12px 16px" }}
+                    className={
+                      granted ? "border-green-400!" : "border-orange-400!"
+                    }
+                    key={key}
+                    size="small"
+                  >
+                    <Flex align="center" gap={12} justify="space-between">
+                      <Flex align="flex-start" gap={10}>
+                        <UnoIcon
+                          className={
+                            granted
+                              ? "mt-0.5 shrink-0 text-green-500"
+                              : "mt-0.5 shrink-0 text-orange-500"
+                          }
+                          name={
+                            granted
+                              ? "i-lucide:shield-check"
+                              : "i-lucide:shield-alert"
+                          }
+                          size={18}
+                        />
+                        <div className="min-w-0">
+                          <Text className="text-sm" strong>
+                            {title}
+                          </Text>
+                          <br />
+                          <Text className="text-color-3 text-xs">
+                            {description}
+                          </Text>
+                        </div>
+                      </Flex>
+                      {renderPermissionStatus(granted, onRequest)}
+                    </Flex>
+                  </Card>
+                ),
+              )}
+            </Flex>
+          </div>
+
+          {/* 区块 3：Wegent Key 配置（可选） */}
+          <Card bodyStyle={{ padding: "12px 16px" }} className="border-dashed!">
+            <Flex align="flex-start" gap={10}>
+              <UnoIcon
+                className="mt-0.5 shrink-0 text-color-3"
+                name="i-lucide:key"
+                size={18}
+              />
+              <div className="min-w-0 flex-1">
+                <Text className="text-sm" strong>
+                  {t("onboarding.wegent.title")}
+                </Text>
+                <Paragraph className="mt-1! mb-2! text-color-3 text-xs">
+                  {t("onboarding.wegent.description")}
+                </Paragraph>
+                <Button
+                  icon={<UnoIcon name="i-lucide:settings" />}
+                  onClick={handleOpenPreference}
+                  size="small"
+                >
+                  {t("onboarding.wegent.goto_preference")}
+                </Button>
+              </div>
+            </Flex>
+          </Card>
+        </div>
+      </div>
+
+      {/* 底部操作区 - 固定在底部 */}
+      <div className="shrink-0 border-color-4 border-t bg-color-2 px-8 py-3">
+        <Flex align="center" gap={12} justify="center">
           {!allGranted && (
             <Text className="text-color-3 text-sm">
               {t("onboarding.complete.hint")}
@@ -247,7 +261,6 @@ const Onboarding = () => {
             <Button
               disabled={!allGranted}
               onClick={handleComplete}
-              size="large"
               type="primary"
             >
               {t("onboarding.complete.button")}
@@ -255,7 +268,7 @@ const Onboarding = () => {
           </Tooltip>
         </Flex>
       </div>
-    </Flex>
+    </div>
   );
 };
 

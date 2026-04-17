@@ -1,6 +1,8 @@
 use tauri::{async_runtime::spawn, AppHandle, Manager, Runtime, WebviewWindow};
 
+pub mod onboarding;
 pub mod send_modal;
+pub use onboarding::*;
 pub use send_modal::*;
 
 // 主窗口的label

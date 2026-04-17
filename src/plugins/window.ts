@@ -11,8 +11,10 @@ import { getCursorMonitor } from "@/utils/monitor";
 import { getPreferredWindowState } from "@/utils/windowState";
 
 const COMMAND = {
+  HIDE_ONBOARDING_WINDOW: "plugin:eco-window|hide_onboarding_window",
   HIDE_TOAST_WINDOW: "plugin:eco-window|hide_toast_window",
   HIDE_WINDOW: "plugin:eco-window|hide_window",
+  SHOW_ONBOARDING_WINDOW: "plugin:eco-window|show_onboarding_window",
   SHOW_TASKBAR_ICON: "plugin:eco-window|show_taskbar_icon",
   SHOW_TOAST_WINDOW: "plugin:eco-window|show_toast_window",
   SHOW_WINDOW: "plugin:eco-window|show_window",
@@ -116,6 +118,20 @@ export const showTaskbarIcon = (visible = true) => {
  */
 export const showToastWindow = async () => {
   await invoke(COMMAND.SHOW_TOAST_WINDOW);
+};
+
+/**
+ * 显示 Onboarding 窗口（引导页）
+ */
+export const showOnboardingWindow = async () => {
+  await invoke(COMMAND.SHOW_ONBOARDING_WINDOW);
+};
+
+/**
+ * 隐藏 Onboarding 窗口（引导页）
+ */
+export const hideOnboardingWindow = async () => {
+  await invoke(COMMAND.HIDE_ONBOARDING_WINDOW);
 };
 
 /**

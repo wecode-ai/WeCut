@@ -11,4 +11,6 @@ permissions = [
   "allow-show-send-modal-window",
   "allow-hide-send-modal-window",
   "allow-close-send-modal-window",
+  "allow-show-onboarding-window",
+  "allow-hide-onboarding-window",
 ]

@@ -10,6 +10,7 @@ export const UPDATE_MESSAGE_KEY = "app-update-message";
 
 export const WINDOW_LABEL = {
   MAIN: "main",
+  ONBOARDING: "onboarding",
   PREFERENCE: "preference",
   SCREENSHOT: "screenshot",
   SEND_MODAL: "send-modal",

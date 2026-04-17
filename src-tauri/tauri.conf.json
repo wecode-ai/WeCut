@@ -101,6 +101,24 @@
         "width": 1920,
         "x": 0,
         "y": 0
+      },
+      {
+        "center": true,
+        "decorations": true,
+        "dragDropEnabled": false,
+        "height": 700,
+        "label": "onboarding",
+        "maxHeight": 900,
+        "maximizable": false,
+        "minHeight": 600,
+        "minWidth": 720,
+        "resizable": true,
+        "skipTaskbar": false,
+        "title": "欢迎使用 WeCut",
+        "transparent": false,
+        "url": "index.html/#/onboarding",
+        "visible": false,
+        "width": 720
       }
     ]
   },

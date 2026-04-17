@@ -5,6 +5,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useBoolean, useEventListener, useKeyPress, useMount } from "ahooks";
 import { ConfigProvider, theme } from "antd";
 import { isString } from "es-toolkit";
+import { useEffect } from "react";
 import { RouterProvider } from "react-router-dom";
 import { useSnapshot } from "valtio";
 import { LISTEN_KEY, PRESET_SHORTCUT } from "./constants";
@@ -17,6 +18,7 @@ import { getAntdLocale, i18n } from "./locales";
 import {
   applyMainWindowLayout,
   hideWindow,
+  showOnboardingWindow,
   showWindow,
 } from "./plugins/window";
 import { router } from "./router";
@@ -48,12 +50,14 @@ const App = () => {
 
     // 生成 antd 的颜色变量
     generateColorVars();
-
-    // 若未完成引导，跳转到引导页
-    if (!globalStore.app.hasCompletedOnboarding) {
-      router.navigate("/onboarding");
-    }
   });
+
+  // 若未完成引导，显示引导窗口（在 RouterProvider 渲染后执行）
+  useEffect(() => {
+    if (ready && !globalStore.app.hasCompletedOnboarding) {
+      showOnboardingWindow();
+    }
+  }, [ready]);
 
   // 监听语言的变化
   useImmediateKey(globalStore.appearance, "language", i18n.changeLanguage);
