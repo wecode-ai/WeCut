@@ -160,6 +160,41 @@
   "context_menu": {
     "set_as_expansion": "Set as Text Expansion"
   },
+  "onboarding": {
+    "complete": {
+      "button": "Complete",
+      "hint": "Please complete all permission authorizations first"
+    },
+    "permission": {
+      "accessibility": {
+        "description": "Used for auto-paste and global shortcut monitoring",
+        "title": "Accessibility"
+      },
+      "authorize": "Authorize",
+      "authorized": "Authorized",
+      "full_disk_access": {
+        "description": "Used for reading files in protected directories",
+        "title": "Full Disk Access"
+      },
+      "screen_recording": {
+        "description": "Used for screenshot functionality",
+        "title": "Screen Recording"
+      }
+    },
+    "permissions": {
+      "description": "WeCut requires the following permissions to work properly. Please complete each authorization.",
+      "title": "macOS Permissions"
+    },
+    "privacy": {
+      "description": "WeCut is a fully open-source project. All data is stored locally on your device only. We do not collect any user data or personal information.",
+      "view_source": "View Source Code"
+    },
+    "wegent": {
+      "description": "After configuring Wegent Key, you can use AI clipboard assistant, work queue and other enhanced features. You can configure it later in Preferences.",
+      "goto_preference": "Go to Preferences",
+      "title": "Configure Wegent Key (Optional)"
+    }
+  },
   "preference": {
     "about": {
       "about_software": {

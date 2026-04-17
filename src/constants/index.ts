@@ -31,6 +31,7 @@ export const LISTEN_KEY = {
   CLIPBOARD_ITEM_SELECT_NEXT: "clipboard-item-select-next",
   CLIPBOARD_ITEM_SELECT_PREV: "clipboard-item-select-prev",
   CLOSE_DATABASE: "close-database",
+  PREFERENCE_NAVIGATE: "preference-navigate",
   REFRESH_CLIPBOARD_LIST: "refresh-clipboard-list",
   SEND_MODAL_DATA: "send-modal-data",
   SEND_MODAL_SEND: "send-modal-send",

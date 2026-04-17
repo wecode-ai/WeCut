@@ -1,5 +1,6 @@
 import { createHashRouter } from "react-router-dom";
 import Main from "@/pages/Main";
+import Onboarding from "@/pages/Onboarding";
 import PinViewer from "@/pages/PinViewer";
 import Preference from "@/pages/Preference";
 import Screenshot from "@/pages/Screenshot";
@@ -10,6 +11,10 @@ export const router = createHashRouter([
   {
     Component: Main,
     path: "/",
+  },
+  {
+    Component: Onboarding,
+    path: "/onboarding",
   },
   {
     Component: Preference,

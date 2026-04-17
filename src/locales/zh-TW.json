@@ -100,6 +100,41 @@
       }
     }
   },
+  "onboarding": {
+    "complete": {
+      "button": "完成",
+      "hint": "請先完成所有權限授權"
+    },
+    "permission": {
+      "accessibility": {
+        "description": "用於自動貼上、監聽全域快捷鍵",
+        "title": "輔助使用功能（Accessibility）"
+      },
+      "authorize": "去授權",
+      "authorized": "已授權",
+      "full_disk_access": {
+        "description": "用於讀取受保護路徑下的檔案內容",
+        "title": "完整磁碟存取（Full Disk Access）"
+      },
+      "screen_recording": {
+        "description": "用於截圖功能",
+        "title": "螢幕錄製（Screen Recording）"
+      }
+    },
+    "permissions": {
+      "description": "WeCut 需要以下權限才能正常運作，請逐一完成授權。",
+      "title": "macOS 權限授權"
+    },
+    "privacy": {
+      "description": "WeCut 是一個完全開源的專案，所有資料僅存儲在您的本機裝置上，我們不會收集任何使用者資料或隱私資訊。",
+      "view_source": "查看原始碼"
+    },
+    "wegent": {
+      "description": "設定 Wegent Key 後，可使用 AI 剪貼簿助手、工作佇列等增強功能。可稍後在偏好設定中設定。",
+      "goto_preference": "前往偏好設定",
+      "title": "設定 Wegent Key（可選）"
+    }
+  },
   "preference": {
     "about": {
       "about_software": {
