@@ -167,12 +167,15 @@
   },
   "onboarding": {
     "complete": {
-      "button": "Complete",
-      "hint": "Please complete all permission authorizations first"
+      "button": "Start Using",
+      "hint": "You can add more permissions in preferences anytime"
+    },
+    "optional_permissions": {
+      "title": "Optional Permissions"
     },
     "permission": {
       "accessibility": {
-        "description": "Used for auto-paste and global shortcut monitoring",
+        "description": "Used for auto-paste",
         "title": "Accessibility"
       },
       "authorize": "Authorize",
@@ -182,7 +185,7 @@
         "confirm": "Go to System Settings",
         "confirm_message": "Full Disk Access permission needs to be enabled manually in System Settings. Clicking \"Go to System Settings\" will open System Preferences.",
         "confirm_title": "Full Disk Access Required",
-        "description": "Used for reading files in protected directories",
+        "description": "Used for file preview functionality",
         "title": "Full Disk Access"
       },
       "screen_recording": {
@@ -197,6 +200,9 @@
     "privacy": {
       "description": "WeCut is a fully open-source project. All data is stored locally on your device only. We do not collect any user data or personal information.",
       "view_source": "View Source Code"
+    },
+    "required_permissions": {
+      "title": "Required Permissions"
     },
     "wegent": {
       "description": "After configuring Wegent Key, you can use AI clipboard assistant, work queue and other enhanced features. You can configure it later in Preferences.",

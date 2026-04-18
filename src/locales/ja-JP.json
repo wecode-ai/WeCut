@@ -115,12 +115,15 @@
   },
   "onboarding": {
     "complete": {
-      "button": "完了",
-      "hint": "すべての権限を先に承認してください"
+      "button": "使用開始",
+      "hint": "いつでも環境設定で権限を追加できます"
+    },
+    "optional_permissions": {
+      "title": "任意権限"
     },
     "permission": {
       "accessibility": {
-        "description": "自動貼り付けとグローバルショートカットの監視に使用",
+        "description": "自動貼り付けに使用",
         "title": "アクセシビリティ"
       },
       "authorize": "承認する",
@@ -130,7 +133,7 @@
         "confirm": "システム設定へ",
         "confirm_message": "フルディスクアクセス権限はシステム設定で手動で有効にする必要があります。「システム設定へ」をクリックするとシステム環境設定が開きます。",
         "confirm_title": "フルディスクアクセスが必要です",
-        "description": "保護されたパスのファイル読み取りに使用",
+        "description": "ファイルプレビュー機能に使用",
         "title": "フルディスクアクセス"
       },
       "screen_recording": {
@@ -145,6 +148,9 @@
     "privacy": {
       "description": "WeCut は完全なオープンソースプロジェクトです。すべてのデータはお使いのデバイスにのみローカルに保存されます。ユーザーデータや個人情報は一切収集しません。",
       "view_source": "ソースコードを見る"
+    },
+    "required_permissions": {
+      "title": "必須権限"
     },
     "wegent": {
       "description": "Wegent Key を設定すると、AI クリップボードアシスタントやワークキューなどの拡張機能が使用できます。後で環境設定で設定することもできます。",

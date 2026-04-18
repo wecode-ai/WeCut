@@ -2,7 +2,7 @@ import { emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { useInterval } from "ahooks";
-import { Button, Card, Flex, Tooltip, Typography } from "antd";
+import { Button, Card, Flex, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -30,8 +30,8 @@ const Onboarding = () => {
   const [screenRecordingGranted, setScreenRecordingGranted] = useState(false);
   const [fullDiskAccessGranted, setFullDiskAccessGranted] = useState(false);
 
-  const allGranted =
-    accessibilityGranted && screenRecordingGranted && fullDiskAccessGranted;
+  // 必要授权：屏幕录制和辅助功能
+  const requiredGranted = screenRecordingGranted && accessibilityGranted;
 
   // 初始检测权限状态
   useEffect(() => {
@@ -99,13 +99,9 @@ const Onboarding = () => {
   };
 
   const handleOpenPreference = async () => {
-    globalStore.app.hasCompletedOnboarding = true;
-    await saveStore();
-    // 关闭引导窗口
-    const window = getCurrentWebviewWindow();
-    await window.close();
-    // 通知偏好设置窗口切换到 Wegent 集成 tab
+    // 显示偏好设置窗口，不关闭 Onboarding（保留在后台）
     await showWindow(WINDOW_LABEL.PREFERENCE as any);
+    // 通知偏好设置窗口切换到 Wegent 集成 tab
     await emit(LISTEN_KEY.PREFERENCE_NAVIGATE, "wegent");
   };
 
@@ -136,7 +132,15 @@ const Onboarding = () => {
     );
   };
 
-  const permissions = [
+  // 必要授权：屏幕录制和辅助功能
+  const requiredPermissions = [
+    {
+      description: t("onboarding.permission.screen_recording.description"),
+      granted: screenRecordingGranted,
+      key: "screenRecording",
+      onRequest: handleRequestScreenRecording,
+      title: t("onboarding.permission.screen_recording.title"),
+    },
     {
       description: t("onboarding.permission.accessibility.description"),
       granted: accessibilityGranted,
@@ -144,12 +148,16 @@ const Onboarding = () => {
       onRequest: handleRequestAccessibility,
       title: t("onboarding.permission.accessibility.title"),
     },
+  ];
+
+  // 选择授权：完全磁盘访问、Wegent 集成
+  const optionalPermissions = [
     {
-      description: t("onboarding.permission.screen_recording.description"),
-      granted: screenRecordingGranted,
-      key: "screenRecording",
-      onRequest: handleRequestScreenRecording,
-      title: t("onboarding.permission.screen_recording.title"),
+      description: t("onboarding.wegent.description"),
+      key: "wegent",
+      onRequest: handleOpenPreference,
+      title: t("onboarding.wegent.title"),
+      type: "wegent" as const,
     },
     {
       description: t("onboarding.permission.full_disk_access.description"),
@@ -191,24 +199,21 @@ const Onboarding = () => {
             </a>
           </Flex>
 
-          {/* 区块 2：macOS 权限引导 */}
+          {/* 区块 2：必要授权 */}
           <div>
             <Title className="mt-0! mb-3!" level={5}>
-              {t("onboarding.permissions.title")}
+              {t("onboarding.required_permissions.title")}
             </Title>
-            <Paragraph className="mb-3! text-color-3 text-sm">
-              {t("onboarding.permissions.description")}
-            </Paragraph>
             <Flex gap={10} vertical>
-              {permissions.map(
+              {requiredPermissions.map(
                 ({ key, title, description, granted, onRequest }) => (
                   <Card
-                    bodyStyle={{ padding: "12px 16px" }}
                     className={
                       granted ? "border-green-400!" : "border-orange-400!"
                     }
                     key={key}
                     size="small"
+                    styles={{ body: { padding: "12px 16px" } }}
                   >
                     <Flex align="center" gap={12} justify="space-between">
                       <Flex align="flex-start" gap={10}>
@@ -219,9 +224,13 @@ const Onboarding = () => {
                               : "mt-0.5 shrink-0 text-orange-500"
                           }
                           name={
-                            granted
-                              ? "i-lucide:shield-check"
-                              : "i-lucide:shield-alert"
+                            key === "accessibility"
+                              ? granted
+                                ? "i-lucide:accessibility"
+                                : "i-lucide:accessibility"
+                              : granted
+                                ? "i-lucide:video-check"
+                                : "i-lucide:video"
                           }
                           size={18}
                         />
@@ -243,53 +252,88 @@ const Onboarding = () => {
             </Flex>
           </div>
 
-          {/* 区块 3：Wegent Key 配置（可选） */}
-          <Card bodyStyle={{ padding: "12px 16px" }} className="border-dashed!">
-            <Flex align="flex-start" gap={10}>
-              <UnoIcon
-                className="mt-0.5 shrink-0 text-color-3"
-                name="i-lucide:key"
-                size={18}
-              />
-              <div className="min-w-0 flex-1">
-                <Text className="text-sm" strong>
-                  {t("onboarding.wegent.title")}
-                </Text>
-                <Paragraph className="mt-1! mb-2! text-color-3 text-xs">
-                  {t("onboarding.wegent.description")}
-                </Paragraph>
-                <Button
-                  icon={<UnoIcon name="i-lucide:settings" />}
-                  onClick={handleOpenPreference}
+          {/* 区块 3：选择授权 */}
+          <div>
+            <Title className="mt-0! mb-3!" level={5}>
+              {t("onboarding.optional_permissions.title")}
+            </Title>
+            <Flex gap={10} vertical>
+              {optionalPermissions.map((item) => (
+                <Card
+                  className={
+                    item.type === "wegent"
+                      ? "border-dashed!"
+                      : item.granted
+                        ? "border-green-400!"
+                        : "border-color-3!"
+                  }
+                  key={item.key}
                   size="small"
+                  styles={{ body: { padding: "12px 16px" } }}
                 >
-                  {t("onboarding.wegent.goto_preference")}
-                </Button>
-              </div>
+                  <Flex align="center" gap={12} justify="space-between">
+                    <Flex align="flex-start" gap={10}>
+                      <UnoIcon
+                        className={
+                          item.type === "wegent"
+                            ? "mt-0.5 shrink-0 text-color-3"
+                            : item.granted
+                              ? "mt-0.5 shrink-0 text-green-500"
+                              : "mt-0.5 shrink-0 text-color-3"
+                        }
+                        name={
+                          item.type === "wegent"
+                            ? "i-lucide:key"
+                            : item.granted
+                              ? "i-lucide:shield-check"
+                              : "i-lucide:hard-drive"
+                        }
+                        size={18}
+                      />
+                      <div className="min-w-0">
+                        <Text className="text-sm" strong>
+                          {item.title}
+                        </Text>
+                        <br />
+                        <Text className="text-color-3 text-xs">
+                          {item.description}
+                        </Text>
+                      </div>
+                    </Flex>
+                    {item.type === "wegent" ? (
+                      <Button
+                        icon={<UnoIcon name="i-lucide:settings" />}
+                        onClick={item.onRequest}
+                        size="small"
+                      >
+                        {t("onboarding.wegent.goto_preference")}
+                      </Button>
+                    ) : (
+                      renderPermissionStatus(item.granted!, item.onRequest)
+                    )}
+                  </Flex>
+                </Card>
+              ))}
             </Flex>
-          </Card>
+          </div>
         </div>
       </div>
 
       {/* 底部操作区 - 固定在底部 */}
       <div className="shrink-0 border-color-4 border-t bg-color-2 px-8 py-3">
         <Flex align="center" gap={12} justify="center">
-          {!allGranted && (
+          {
             <Text className="text-color-3 text-sm">
               {t("onboarding.complete.hint")}
             </Text>
-          )}
-          <Tooltip
-            title={!allGranted ? t("onboarding.complete.hint") : undefined}
+          }
+          <Button
+            disabled={!requiredGranted}
+            onClick={handleComplete}
+            type="primary"
           >
-            <Button
-              disabled={!allGranted}
-              onClick={handleComplete}
-              type="primary"
-            >
-              {t("onboarding.complete.button")}
-            </Button>
-          </Tooltip>
+            {t("onboarding.complete.button")}
+          </Button>
         </Flex>
       </div>
     </div>
