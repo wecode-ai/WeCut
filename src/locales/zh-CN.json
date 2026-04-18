@@ -162,12 +162,15 @@
   },
   "onboarding": {
     "complete": {
-      "button": "完成",
-      "hint": "请先完成所有权限授权"
+      "button": "开始使用",
+      "hint": "可随时在偏好设置中补充授权"
+    },
+    "optional_permissions": {
+      "title": "选择授权"
     },
     "permission": {
       "accessibility": {
-        "description": "用于自动粘贴、监听全局快捷键",
+        "description": "用于自动粘贴",
         "title": "辅助功能（Accessibility）"
       },
       "authorize": "去授权",
@@ -177,7 +180,7 @@
         "confirm": "前往系统设置",
         "confirm_message": "完全磁盘访问权限需要在系统设置中手动开启。点击\"前往系统设置\"将打开系统偏好设置。",
         "confirm_title": "需要完全磁盘访问权限",
-        "description": "用于读取受保护路径下的文件内容",
+        "description": "用于文件预览功能",
         "title": "完全磁盘访问（Full Disk Access）"
       },
       "screen_recording": {
@@ -192,6 +195,9 @@
     "privacy": {
       "description": "WeCut 是一个完全开源的项目，所有数据仅存储在您本地设备上，我们不会收集任何用户数据或隐私信息。",
       "view_source": "查看源代码"
+    },
+    "required_permissions": {
+      "title": "必要授权"
     },
     "wegent": {
       "description": "配置 Wegent Key 后，可使用 AI 剪切板助手、工作队列等增强功能。可稍后在偏好设置中配置。",
