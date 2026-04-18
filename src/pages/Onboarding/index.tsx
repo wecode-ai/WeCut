@@ -99,13 +99,9 @@ const Onboarding = () => {
   };
 
   const handleOpenPreference = async () => {
-    globalStore.app.hasCompletedOnboarding = true;
-    await saveStore();
-    // 关闭引导窗口
-    const window = getCurrentWebviewWindow();
-    await window.close();
-    // 通知偏好设置窗口切换到 Wegent 集成 tab
+    // 显示偏好设置窗口，不关闭 Onboarding（保留在后台）
     await showWindow(WINDOW_LABEL.PREFERENCE as any);
+    // 通知偏好设置窗口切换到 Wegent 集成 tab
     await emit(LISTEN_KEY.PREFERENCE_NAVIGATE, "wegent");
   };
 
