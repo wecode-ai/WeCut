@@ -289,7 +289,9 @@ const InboxPicker = ({
             const isSelected = value === q.name;
             return (
               <button
-                className={`inbox-card${isSelected ? "inbox-card--selected" : ""}`}
+                className={["inbox-card", isSelected && "inbox-card--selected"]
+                  .filter(Boolean)
+                  .join(" ")}
                 key={q.name}
                 onClick={() => onChange?.(q.name)}
                 title={label}
