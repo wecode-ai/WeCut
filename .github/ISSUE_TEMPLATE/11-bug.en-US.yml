@@ -8,8 +8,8 @@ body:
     attributes:
       value: |
         ## Friendly Reminder
-        1. Please check the [FAQ](https://ecopaste.cn/problem/macos/damage) or existing [issues](https://github.com/EcoPasteHub/EcoPaste/issues) first.
-        2. Make sure you're using the [latest version](https://github.com/EcoPasteHub/EcoPaste/releases/latest).
+        1. Please check the existing [issues](https://github.com/wecode-ai/wecut/issues) first.
+        2. Make sure you're using the [latest version](https://github.com/wecode-ai/wecut/releases/latest).
         3. Ensure the issue is not caused by other software.
         4. Please always remain friendly and respectful. Thank you for your understanding and cooperation.
 

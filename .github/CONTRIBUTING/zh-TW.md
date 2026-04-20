@@ -1,6 +1,6 @@
 # 貢獻指南
 
-非常感謝您對 EcoPaste 的關注和貢獻！在您提交貢獻之前，請先花一些時間閱讀以下指南，以確保您的貢獻能夠順利進行。
+非常感謝您對 WeCut 的關注和貢獻！在您提交貢獻之前，請先花一些時間閱讀以下指南，以確保您的貢獻能夠順利進行。
 
 ## 透明的開發
 
@@ -8,7 +8,7 @@
 
 ## 提交 Issue
 
-我們使用 [Github Issues](https://github.com/EcoPasteHub/EcoPaste/issues) 進行 Bug 報告和新 Feature 建議。在提交 Issue 之前，請確保已經搜索過類似的問題，因為它們可能已經得到解答或正在被修復。對於 Bug 報告，請包含可用於重現問題的完整步驟。對於新 Feature 建議，請指出你想要的更改以及期望的行為。
+我們使用 [Github Issues](https://github.com/wecode-ai/wecut/issues) 進行 Bug 報告和新 Feature 建議。在提交 Issue 之前，請確保已經搜索過類似的問題，因為它們可能已經得到解答或正在被修復。對於 Bug 報告，請包含可用於重現問題的完整步驟。對於新 Feature 建議，請指出你想要的更改以及期望的行為。
 
 ## 提交 Pull Request
 
@@ -60,4 +60,4 @@ Commit messages 請遵循[conventional-changelog 標準](https://www.conventiona
 - perf: 性能優化
 - chore: 其他提交
 
-期待您的參與，讓我們一起使 EcoPaste 變得更好！
+期待您的參與，讓我們一起使 WeCut 變得更好！

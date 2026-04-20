@@ -1,6 +1,6 @@
 # Contribution Guidelines
 
-Thanks for your interests and contributions to `EcoPaste`! Before you submit your Pull Request, please take a moment to review the following guidelines to ensure a smooth process.
+Thanks for your interests and contributions to `WeCut`! Before you submit your Pull Request, please take a moment to review the following guidelines to ensure a smooth process.
 
 ## Transparent Development
 
@@ -8,7 +8,7 @@ All work is conducted openly on GitHub. Whether you are a core team member or an
 
 ## Submitting Issues
 
-We use [GitHub Issues](https://github.com/EcoPasteHub/EcoPaste/issues) for bug reports and feature suggestions.
+We use [GitHub Issues](https://github.com/wecode-ai/wecut/issues) for bug reports and feature suggestions.
 
 Before submitting an issue, please search for similar problems, as they may have already been addressed or are in progress.
 
@@ -72,4 +72,4 @@ Here are the available commit types:
 - perf: Performance improvements
 - chore: Other changes
 
-We're looking forward to your contributions to make EcoPaste much better!
+We're looking forward to your contributions to make WeCut much better!
