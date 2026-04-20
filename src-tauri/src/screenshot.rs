@@ -1237,7 +1237,7 @@ pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), Strin
         pasteboard.declareTypes_owner(types, nil);
 
         let result = pasteboard.setData_forType(ns_data, ns_type);
-        if result == 0 {
+        if result == cocoa::base::NO {
             return Err("写入剪贴板失败".to_string());
         }
     }
