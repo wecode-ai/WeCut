@@ -686,7 +686,7 @@ fn capture_screen_native_jpeg(display_id: u32, quality: f64) -> Result<Vec<u8>, 
 }
 
 fn capture_preview_data_url_by_id(
-    monitor_id: u32,
+    _monitor_id: u32,
     original: &ScreenshotOriginalFrame,
 ) -> Result<(String, String), String> {
     #[cfg(target_os = "macos")]
@@ -1333,7 +1333,7 @@ pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), Strin
             }
         }
 
-        GlobalUnlock(h_global);
+        let _ = GlobalUnlock(h_global);
 
         const CF_DIB: u32 = 8;
         use windows::Win32::Foundation::HANDLE;

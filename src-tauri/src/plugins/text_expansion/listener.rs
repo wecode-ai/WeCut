@@ -1,7 +1,6 @@
 use crate::plugins::text_expansion::matcher::TextMatcher;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use tauri::{AppHandle, Runtime};
 
 #[cfg(target_os = "macos")]
@@ -11,7 +10,7 @@ use core_graphics::event::{CGEventTap, CGEventTapLocation, CGEventType};
 
 /// Text expansion keyboard listener
 pub struct TextExpansionListener<R: Runtime> {
-    app: AppHandle<R>,
+    _app: AppHandle<R>,
     matcher: Arc<Mutex<TextMatcher>>,
     enabled: Arc<Mutex<bool>>,
 }
@@ -19,7 +18,7 @@ pub struct TextExpansionListener<R: Runtime> {
 impl<R: Runtime> TextExpansionListener<R> {
     pub fn new(app: AppHandle<R>) -> Self {
         Self {
-            app,
+            _app: app,
             matcher: Arc::new(Mutex::new(TextMatcher::new(";;".to_string()))),
             enabled: Arc::new(Mutex::new(true)),
         }
