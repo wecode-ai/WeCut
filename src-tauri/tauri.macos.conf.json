@@ -2,5 +2,5 @@
   "bundle": {
     "resources": ["assets/tray-mac.ico"]
   },
-  "identifier": "com.ayangweb.WeCut"
+  "identifier": "com.weibo.wecode-ai.WeCut"
 }

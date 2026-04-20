@@ -142,7 +142,7 @@
     "shortDescription": "WeCut",
     "targets": ["nsis", "dmg", "app", "appimage", "deb", "rpm"]
   },
-  "identifier": "com.ayangweb.WeCut",
+  "identifier": "com.weibo.wecode-ai.WeCut",
   "mainBinaryName": "WeCut",
   "plugins": {
     "fs": {
