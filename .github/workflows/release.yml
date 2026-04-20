@@ -50,8 +50,6 @@ jobs:
           - platform: "windows-latest"
             target: "x86_64-pc-windows-msvc"
           - platform: "windows-latest"
-            target: "i686-pc-windows-msvc"
-          - platform: "windows-latest"
             target: "aarch64-pc-windows-msvc"
 
     runs-on: ${{ matrix.platform }}
@@ -133,10 +131,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          # 找到 tauri 输出目录中的 DMG 文件
-          DMG_PATH=$(find src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | head -1)
+          # 找到 tauri 输出目录中的 DMG 文件（路径在项目根目录的 target/ 下）
+          DMG_DIR="target/${{ matrix.target }}/release/bundle/dmg"
+          if [ ! -d "$DMG_DIR" ]; then
+            echo "DMG directory not found: $DMG_DIR, skipping re-sign step"
+            exit 0
+          fi
+
+          DMG_PATH=$(find "$DMG_DIR" -name "*.dmg" 2>/dev/null | head -1)
           if [ -z "$DMG_PATH" ]; then
-            echo "No DMG found, skipping re-sign step"
+            echo "No DMG found in $DMG_DIR, skipping re-sign step"
             exit 0
           fi
 
