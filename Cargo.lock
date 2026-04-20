@@ -43,7 +43,7 @@ dependencies = [
  "tauri-plugin-updater",
  "tokio",
  "urlencoding",
- "windows 0.58.0",
+ "windows 0.61.3",
  "xcap",
 ]
 
