@@ -36,9 +36,11 @@ impl<R: Runtime> TextExpansionListener<R> {
 
     #[cfg(target_os = "macos")]
     fn start_macos(&self) {
+        use std::thread;
+
         let matcher = self.matcher.clone();
         let enabled = self.enabled.clone();
-        let app = self.app.clone();
+        let app = self._app.clone();
 
         thread::spawn(move || {
             // Create event tap for key down events
