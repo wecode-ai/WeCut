@@ -1285,7 +1285,7 @@ pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), Strin
     let (width, height) = rgba.dimensions();
 
     unsafe {
-        OpenClipboard(HWND(std::ptr::null_mut()))
+        OpenClipboard(Some(HWND(std::ptr::null_mut())))
             .map_err(|e| format!("打开剪贴板失败: {:?}", e))?;
 
         EmptyClipboard().map_err(|e| format!("清空剪贴板失败: {:?}", e))?;
