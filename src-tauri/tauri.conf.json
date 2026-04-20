@@ -150,7 +150,7 @@
     },
     "updater": {
       "endpoints": ["https://wecutplat.ai"],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ1MEEzMUZGQzg3NzM1QTUKUldTbE5YZkkvekVLMWFZRUlSWEdRR1huT2tzS01TTW50ekRZM2hpMTlvTGhkMmdGcGlCSjBkUkIK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQyMzdGNERBQzQ0NzA5OTMKUldTVENVZkUydlEzUXJocGM5WEJPYm9YcVhjdjVJQjlnMnZXWFp1YmsyMVJWa2pvSkgwQnlMMzEK"
     }
   },
   "productName": "WeCut",
