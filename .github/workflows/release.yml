@@ -122,3 +122,73 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.target }}
+
+      # macOS: 对构建产物重新进行 adhoc 深度签名，修复 Gatekeeper "文件已损坏" 问题
+      # 并将重签名后的 DMG 重新上传到 GitHub Release，替换 tauri-action 上传的旧版本
+      - name: Re-sign and repackage DMG (macOS only)
+        if: matrix.platform == 'macos-latest'
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # 找到 tauri 输出目录中的 DMG 文件
+          DMG_PATH=$(find src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | head -1)
+          if [ -z "$DMG_PATH" ]; then
+            echo "No DMG found, skipping re-sign step"
+            exit 0
+          fi
+
+          echo "Found DMG: $DMG_PATH"
+          DMG_NAME=$(basename "$DMG_PATH")
+          WORK_DIR=$(mktemp -d)
+
+          # 挂载原始 DMG
+          MOUNT_POINT="$WORK_DIR/mount"
+          mkdir -p "$MOUNT_POINT"
+          hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_POINT" -nobrowse -quiet
+
+          # 找到 .app
+          APP_PATH=$(find "$MOUNT_POINT" -name "*.app" -maxdepth 1 | head -1)
+          echo "Found app: $APP_PATH"
+
+          # 复制 .app 到临时目录
+          APP_COPY="$WORK_DIR/$(basename "$APP_PATH")"
+          cp -R "$APP_PATH" "$APP_COPY"
+
+          # 卸载原始 DMG
+          hdiutil detach "$MOUNT_POINT" -quiet
+
+          # 移除隔离属性和旧签名，进行深度 adhoc 重签名
+          xattr -cr "$APP_COPY"
+          codesign --deep --force --sign - "$APP_COPY"
+
+          echo "Re-signed app:"
+          codesign -dv "$APP_COPY" 2>&1 || true
+
+          # 重新打包为 DMG
+          NEW_DMG="$WORK_DIR/$DMG_NAME"
+          hdiutil create -volname "WeCut" -srcfolder "$APP_COPY" \
+            -ov -format UDZO "$NEW_DMG"
+
+          echo "New DMG created: $NEW_DMG"
+
+          # 删除 Release 中旧的同名 DMG 资产，再上传新的
+          TAG="${{ github.ref_name }}"
+          ASSET_ID=$(gh release view "$TAG" --repo ${{ github.repository }} --json assets \
+            --jq ".assets[] | select(.name == \"$DMG_NAME\") | .id" 2>/dev/null || echo "")
+
+          if [ -n "$ASSET_ID" ]; then
+            echo "Deleting old release asset: $ASSET_ID"
+            gh release delete-asset "$TAG" "$DMG_NAME" --repo ${{ github.repository }} --yes 2>/dev/null || true
+          fi
+
+          echo "Uploading re-signed DMG to release: $TAG"
+          gh release upload "$TAG" "$NEW_DMG#$DMG_NAME" \
+            --repo ${{ github.repository }} --clobber
+
+          echo "Done: $DMG_NAME uploaded successfully"
+
+          # 清理
+          rm -rf "$WORK_DIR"
