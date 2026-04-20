@@ -26,7 +26,7 @@ export const globalStore = proxy<GlobalStore>({
   },
 
   shortcut: {
-    clipboard: "Alt+C",
+    clipboard: isMac ? "Command+Shift+V" : "Ctrl+Shift+V",
     copyFilePath: "",
     pastePlain: "",
     preference: "Alt+X",
