@@ -1259,6 +1259,7 @@ pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), Strin
 #[tauri::command]
 pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), String> {
     use windows::Win32::Foundation::{HGLOBAL, HWND};
+    use windows::Win32::Graphics::Gdi::BITMAPINFOHEADER;
     use windows::Win32::System::DataExchange::{CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData};
     use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE, GMEM_ZEROINIT};
 
@@ -1316,14 +1317,15 @@ pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), Strin
         (*bi).biClrImportant = 0;
 
         let pixel_ptr = ptr.add(bi_size);
+        let raw = rgba.as_raw();
         for y in 0..height {
             for x in 0..width {
                 let src_idx = ((height - 1 - y) * width + x) as usize * 4;
                 let dst_idx = (y * row_size + x * 4) as usize;
-                let r = rgba[src_idx];
-                let g = rgba[src_idx + 1];
-                let b = rgba[src_idx + 2];
-                let a = rgba[src_idx + 3];
+                let r = raw[src_idx];
+                let g = raw[src_idx + 1];
+                let b = raw[src_idx + 2];
+                let a = raw[src_idx + 3];
                 *pixel_ptr.add(dst_idx) = b;
                 *pixel_ptr.add(dst_idx + 1) = g;
                 *pixel_ptr.add(dst_idx + 2) = r;
@@ -1334,7 +1336,8 @@ pub async fn copy_image_to_clipboard(image_data_url: String) -> Result<(), Strin
         GlobalUnlock(h_global);
 
         const CF_DIB: u32 = 8;
-        SetClipboardData(CF_DIB, Some(h_global.into()))
+        use windows::Win32::Foundation::HANDLE;
+        SetClipboardData(CF_DIB, Some(HANDLE(h_global.0)))
             .map_err(|e| format!("设置剪贴板数据失败: {:?}", e))?;
 
         CloseClipboard().map_err(|e| format!("关闭剪贴板失败: {:?}", e))?;
