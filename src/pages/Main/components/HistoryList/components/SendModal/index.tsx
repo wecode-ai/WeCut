@@ -1,4 +1,5 @@
 import { readFile } from "@tauri-apps/plugin-fs";
+import { open as openUrl } from "@tauri-apps/plugin-opener";
 import { useBoolean } from "ahooks";
 import { Button, Form, Modal, notification, Space, Typography } from "antd";
 import { find, isString } from "es-toolkit/compat";
@@ -104,7 +105,7 @@ const buildImageContent = async (
   return content;
 };
 
-// 发送消息到 Work Queue
+// 发送消息到 Work Queue，返回响应体
 const sendToWorkQueue = async (
   config: { baseUrl: string; apiToken: string; queueName: string },
   payload: {
@@ -115,7 +116,7 @@ const sendToWorkQueue = async (
     sender?: { externalId: string; displayName: string };
     source?: { type: string; name: string };
   },
-) => {
+): Promise<Record<string, unknown>> => {
   const url = `${config.baseUrl}/api/work-queues/by-name/${config.queueName}/messages/ingest`;
 
   const response = await fetch(url, {
@@ -148,6 +149,12 @@ const sendToWorkQueue = async (
     const errorText = await response.text();
     throw new Error(errorText);
   }
+
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
 };
 
 const SendModal = forwardRef<SendModalRef>((_, ref) => {
@@ -169,6 +176,12 @@ const SendModal = forwardRef<SendModalRef>((_, ref) => {
   // 错误详情弹窗状态
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorDetail, setErrorDetail] = useState({ content: "", title: "" });
+
+  // Work Queue 发送结果弹窗状态
+  const [resultModalOpen, setResultModalOpen] = useState(false);
+  const [resultTaskUrl, setResultTaskUrl] = useState<string | undefined>(
+    undefined,
+  );
 
   useImperativeHandle(ref, () => ({
     open: (id, serviceType) => {
@@ -292,13 +305,15 @@ const SendModal = forwardRef<SendModalRef>((_, ref) => {
     }
   };
 
-  // 发送消息到 Work Queue
-  const sendToWorkQueueAsync = async (payload: WorkQueueFormFields) => {
+  // 发送消息到 Work Queue，成功返回响应数据，失败返回 null 并展示错误通知
+  const sendToWorkQueueAsync = async (
+    payload: WorkQueueFormFields,
+  ): Promise<Record<string, unknown> | null> => {
     const config = wegent?.workQueue || workQueueConfig;
-    if (!config) return;
+    if (!config) return null;
 
     try {
-      await sendToWorkQueue(config, {
+      const result = await sendToWorkQueue(config, {
         content: payload.content,
         note: payload.note,
         priority: payload.priority,
@@ -316,6 +331,7 @@ const SendModal = forwardRef<SendModalRef>((_, ref) => {
           : undefined,
         title: payload.title,
       });
+      return result;
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -348,6 +364,7 @@ const SendModal = forwardRef<SendModalRef>((_, ref) => {
         message: t("component.send_modal.error.title"),
         placement: "topRight",
       });
+      return null;
     }
   };
 
@@ -443,8 +460,19 @@ const SendModal = forwardRef<SendModalRef>((_, ref) => {
     try {
       const values = await workQueueForm.validateFields();
 
+      // 关闭发送弹窗
       toggle();
-      sendToWorkQueueAsync(values);
+
+      // 发送请求并等待结果
+      const result = await sendToWorkQueueAsync(values);
+
+      // 发送成功，展示结果弹窗
+      if (result !== null) {
+        const taskUrl =
+          typeof result.taskUrl === "string" ? result.taskUrl : undefined;
+        setResultTaskUrl(taskUrl);
+        setResultModalOpen(true);
+      }
     } catch (error) {
       // 表单验证失败，不关闭弹窗
       if (error instanceof Error && error.message.includes("validation")) {
@@ -515,6 +543,20 @@ const SendModal = forwardRef<SendModalRef>((_, ref) => {
     return t("component.send_modal.title.work_queue");
   };
 
+  // 在浏览器中打开任务链接
+  const handleGoToTask = async () => {
+    if (!resultTaskUrl) return;
+    try {
+      await openUrl(resultTaskUrl);
+    } catch {
+      notification.error({
+        duration: 3,
+        message: t("component.send_modal.error.unknown"),
+        placement: "topRight",
+      });
+    }
+  };
+
   return (
     <>
       <Modal
@@ -575,6 +617,30 @@ const SendModal = forwardRef<SendModalRef>((_, ref) => {
           >
             <code>{errorDetail.content}</code>
           </pre>
+        </Typography.Paragraph>
+      </Modal>
+
+      {/* Work Queue 发送结果弹窗 */}
+      <Modal
+        centered
+        footer={
+          <Space>
+            <Button onClick={() => setResultModalOpen(false)}>
+              {t("component.send_modal.button.close")}
+            </Button>
+            {resultTaskUrl && (
+              <Button onClick={handleGoToTask} type="primary">
+                {t("component.send_modal.button.go_to_task")}
+              </Button>
+            )}
+          </Space>
+        }
+        onCancel={() => setResultModalOpen(false)}
+        open={resultModalOpen}
+        title={t("component.send_modal.result.title")}
+      >
+        <Typography.Paragraph>
+          {t("component.send_modal.result.description")}
         </Typography.Paragraph>
       </Modal>
     </>

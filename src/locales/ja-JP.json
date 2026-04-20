@@ -71,7 +71,14 @@
     "send_modal": {
       "button": {
         "cancel": "キャンセル",
-        "direct_send": "直接送信"
+        "close": "閉じる",
+        "direct_send": "直接送信",
+        "go_to_task": "タスクへ移動",
+        "send": "送信"
+      },
+      "result": {
+        "description": "ワークキューへの送信が完了しました",
+        "title": "送信完了"
       },
       "hints": {
         "input_extra_message": "追加情報を入力してください（任意）"
