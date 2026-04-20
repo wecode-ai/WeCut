@@ -69,8 +69,19 @@ jobs:
         with:
           version: latest
 
-      - name: Install rust target
-        run: rustup target add ${{ matrix.target }}
+      # pnpm store 缓存 - 避免每次重新下载包
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
@@ -78,22 +89,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libpipewire-0.3-dev
 
-      # 安装 Rust
+      # 安装 Rust（带 target）
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
-      # 使用 Rust 缓存，加快安装速度
+      # Rust 缓存 - 关键修复：指向 src-tauri/target
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: target
-
-      # 获取 pnpm 缓存
-      - name: Sync node version and setup cache
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
+          workspaces: "src-tauri -> target"
+          cache-on-failure: true
 
       # 安装依赖, 前端打包
       - name: Install app dependencies and build web
