@@ -831,15 +831,34 @@ pub async fn show_screenshot_window(
     let y = monitor
         .y()
         .map_err(|e| format!("获取显示器Y坐标失败: {}", e))?;
-    let width = monitor
-        .width()
-        .map_err(|e| format!("获取显示器宽度失败: {}", e))?;
-    let height = monitor
-        .height()
-        .map_err(|e| format!("获取显示器高度失败: {}", e))?;
     let scale_factor = monitor
         .scale_factor()
         .map_err(|e| format!("获取显示器缩放比例失败: {}", e))?;
+
+    // Windows 上 xcap 返回的是物理像素，需要转换为逻辑像素
+    // macOS 上返回的已经是逻辑像素
+    #[cfg(target_os = "windows")]
+    let (width, height) = {
+        let w = monitor
+            .width()
+            .map_err(|e| format!("获取显示器宽度失败: {}", e))? as f32
+            / scale_factor;
+        let h = monitor
+            .height()
+            .map_err(|e| format!("获取显示器高度失败: {}", e))? as f32
+            / scale_factor;
+        (w as u32, h as u32)
+    };
+
+    #[cfg(not(target_os = "windows"))]
+    let (width, height) = (
+        monitor
+            .width()
+            .map_err(|e| format!("获取显示器宽度失败: {}", e))?,
+        monitor
+            .height()
+            .map_err(|e| format!("获取显示器高度失败: {}", e))?,
+    );
 
     // 调试日志：打印显示器信息
     log::info!(
