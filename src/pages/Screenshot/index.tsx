@@ -26,6 +26,7 @@ import {
   getScreenshotData,
   hideScreenshotWindow,
 } from "./hooks/useScreenshot";
+// NOTE: getScreenshotCrop is still used for the initial selection confirm (handleSelectionConfirm)
 import { resolveEditorTransition } from "./utils/editor-transition";
 
 type Phase = "idle" | "selecting" | "loadingCrop" | "editing";
@@ -48,7 +49,7 @@ const Screenshot = () => {
     x: 0,
     y: 0,
   });
-  // 移动过程中实时更新的框位置（仅用于 SVG 遮罩挖空，不触发重新裁剪）
+  // 拖拽过程中实时更新的框位置（move/resize 共用，仅用于 SVG 遮罩挖空）
   const [movingSelection, setMovingSelection] = useState<Selection | null>(
     null,
   );
@@ -82,6 +83,36 @@ const Screenshot = () => {
     setMovingSelection(null);
     setPinned(false);
   }, []);
+
+  /** 用前端 canvas 从 previewImage 裁剪指定选区，返回 data URL（同步完成） */
+  const cropFromPreview = (sel: Selection): string => {
+    const img = previewImageElRef.current;
+    if (!img?.complete || img.naturalWidth === 0) return "";
+
+    const logicalW = previewLogicalSize.w || window.innerWidth;
+    const logicalH = previewLogicalSize.h || window.innerHeight;
+    const scaleX = img.naturalWidth / logicalW;
+    const scaleY = img.naturalHeight / logicalH;
+
+    const sx = Math.max(0, Math.floor(sel.x * scaleX));
+    const sy = Math.max(0, Math.floor(sel.y * scaleY));
+    const sw = Math.max(
+      1,
+      Math.min(Math.round(sel.w * scaleX), img.naturalWidth - sx),
+    );
+    const sh = Math.max(
+      1,
+      Math.min(Math.round(sel.h * scaleY), img.naturalHeight - sy),
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = sw;
+    canvas.height = sh;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    return canvas.toDataURL("image/png");
+  };
 
   // 监听 Rust 端推送的截图 label（show_screenshot_window 中先截图再创建窗口）
   // 收到 label 后主动拉取截图数据
@@ -251,7 +282,7 @@ const Screenshot = () => {
       });
   };
 
-  // 用于移动选区时前端直接裁剪的图片对象缓存（预加载，避免每次创建）
+  // 用于前端直接裁剪的图片对象缓存（预加载，避免每次创建）
   const previewImageElRef = useRef<HTMLImageElement | null>(null);
 
   // 当 previewImageDataUrl 变化时，预加载图片对象供前端裁剪使用
@@ -267,43 +298,27 @@ const Screenshot = () => {
     img.src = previewImageDataUrl;
   }, [previewImageDataUrl]);
 
-  /** 移动过程中实时回调：只更新 SVG 遮罩挖空位置，不重新裁剪图像 */
-  const handleSelectionMoving = (sel: Selection) => {
+  /** 拖拽过程中实时回调（move/resize 共用）：只更新 SVG 遮罩挖空位置 */
+  const handleSelectionDragging = (sel: Selection) => {
     setMovingSelection(sel);
   };
 
-  /** 移动结束（mouseup）：更新 selection 并重新裁剪图像 */
-  const handleSelectionMove = (sel: Selection) => {
+  /**
+   * 拖拽结束（move/resize 共用）：用前端 canvas 裁剪，同时更新 selection + bgImage
+   * 前端裁剪是同步的，selection 和 bgImage 在同一个 React 批次中更新，不会出现尺寸/内容不匹配
+   */
+  const handleSelectionChanged = (sel: Selection) => {
     setMovingSelection(null);
-    setSelection(sel);
-    // 移动选区时直接在前端用 Canvas 裁剪，无需 IPC 调用，性能更高
-    const img = previewImageElRef.current;
-    if (!img?.complete || img.naturalWidth === 0) return;
-
-    const logicalW = previewLogicalSize.w || window.innerWidth;
-    const logicalH = previewLogicalSize.h || window.innerHeight;
-    const scaleX = img.naturalWidth / logicalW;
-    const scaleY = img.naturalHeight / logicalH;
-
-    const sx = Math.max(0, Math.floor(sel.x * scaleX));
-    const sy = Math.max(0, Math.floor(sel.y * scaleY));
-    const sw = Math.max(
-      1,
-      Math.min(Math.round(sel.w * scaleX), img.naturalWidth - sx),
-    );
-    const sh = Math.max(
-      1,
-      Math.min(Math.round(sel.h * scaleY), img.naturalHeight - sy),
-    );
-
-    const canvas = document.createElement("canvas");
-    canvas.width = sw;
-    canvas.height = sh;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
-    setEditorImageDataUrl(canvas.toDataURL("image/png"));
-    setEditorImageCropped(true);
+    const cropDataUrl = cropFromPreview(sel);
+    if (cropDataUrl) {
+      // 同时更新 selection 和 bgImage，避免 canvas 尺寸与图像内容不匹配
+      setSelection(sel);
+      setEditorImageDataUrl(cropDataUrl);
+      setEditorImageCropped(true);
+    } else {
+      // previewImage 未加载完成（极少情况），只更新 selection
+      setSelection(sel);
+    }
   };
 
   const handlePin = async (dataUrl: string) => {
@@ -515,9 +530,9 @@ const Screenshot = () => {
                 }
           }
           onClose={handleClose}
-          onMove={handleSelectionMove}
-          onMoving={handleSelectionMoving}
+          onDragging={handleSelectionDragging}
           onPin={handlePin}
+          onSelectionChange={handleSelectionChanged}
           onSendToWegent={handleSendToWegent}
           pinned={pinned}
           selection={selection}

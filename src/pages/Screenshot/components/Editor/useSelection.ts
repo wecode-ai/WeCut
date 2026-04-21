@@ -3,17 +3,19 @@ import type { HandleType, Selection } from "./types";
 
 interface UseSelectionOptions {
   selection: Selection;
-  onResize?: (sel: Selection) => void;
-  onMove?: (sel: Selection) => void;
-  /** 移动过程中实时回调（仅更新框位置，不触发重新裁剪） */
-  onMoving?: (sel: Selection) => void;
+  /**
+   * move/resize 拖拽结束后回调（统一入口）
+   * 父组件负责同时更新 selection + bgImage（前端 canvas 裁剪），避免尺寸/内容不匹配
+   */
+  onSelectionChange?: (sel: Selection) => void;
+  /** 拖拽过程中实时回调（move/resize 共用），仅用于更新 SVG 遮罩挖空位置 */
+  onDragging?: (sel: Selection) => void;
 }
 
 export function useSelection({
   selection,
-  onResize,
-  onMove,
-  onMoving,
+  onSelectionChange,
+  onDragging,
 }: UseSelectionOptions) {
   const [currentSel, setCurrentSel] = useState<Selection>(selection);
   const currentSelRef = useRef<Selection>(selection);
@@ -22,13 +24,20 @@ export function useSelection({
   const activeHandle = useRef<HandleType | null>(null);
   const handleDragStart = useRef({ x: 0, y: 0 });
   const handleSelStart = useRef<Selection>({ h: 0, w: 0, x: 0, y: 0 });
+  // ref 版本：同步读取，避免 React state 异步更新导致的一帧拉伸
+  const isResizingRef = useRef(false);
+  // React state 版本的 resize 状态，用于触发重渲染（固定 canvas 尺寸避免拉伸）
+  const [isDraggingResize, setIsDraggingResize] = useState(false);
 
   // 移动拖拽状态
   const isMoving = useRef(false);
-  // React state 版本的移动状态，用于触发重渲染（区分 move 和 resize）
+  // React state 版本的移动状态，用于触发重渲染（隐藏 canvas 避免残留）
   const [isDraggingMove, setIsDraggingMove] = useState(false);
   const moveDragStart = useRef({ x: 0, y: 0 });
   const moveSelStart = useRef<Selection>({ h: 0, w: 0, x: 0, y: 0 });
+
+  // 等待图像更新状态：mouseup 后设为 true，bgImage 更新后设为 false
+  const [pendingImageUpdate, setPendingImageUpdate] = useState(false);
 
   // 同步 selection prop 变化（仅在非拖拽状态下同步，避免打断拖拽）
   useEffect(() => {
@@ -56,8 +65,8 @@ export function useSelection({
           y: moveSelStart.current.y + dy,
         };
         setCurrentSel(newSel);
-        // 实时通知框位置变化（不触发重新裁剪）
-        onMoving?.(newSel);
+        // 实时通知框位置变化（仅更新 SVG 遮罩挖空位置）
+        onDragging?.(newSel);
         return;
       }
 
@@ -123,19 +132,28 @@ export function useSelection({
       nw = Math.max(10, nw);
       nh = Math.max(10, nh);
 
-      setCurrentSel({ h: nh, w: nw, x: nx, y: ny });
+      const newSel = { h: nh, w: nw, x: nx, y: ny };
+      setCurrentSel(newSel);
+      // 实时通知选区变化（仅更新 SVG 遮罩挖空位置）
+      onDragging?.(newSel);
     };
 
     const onMouseUp = () => {
       if (isMoving.current) {
         isMoving.current = false;
         setIsDraggingMove(false);
-        onMove?.(currentSelRef.current);
+        // move/resize 统一回调，父组件同时更新 selection + bgImage（前端 canvas 裁剪）
+        setPendingImageUpdate(true);
+        onSelectionChange?.(currentSelRef.current);
         return;
       }
       if (!activeHandle.current) return;
       activeHandle.current = null;
-      onResize?.(currentSelRef.current);
+      isResizingRef.current = false;
+      setIsDraggingResize(false);
+      // move/resize 统一回调，父组件同时更新 selection + bgImage（前端 canvas 裁剪）
+      setPendingImageUpdate(true);
+      onSelectionChange?.(currentSelRef.current);
     };
 
     window.addEventListener("mousemove", onMouseMove);
@@ -144,7 +162,7 @@ export function useSelection({
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
-  }, [onResize, onMove, onMoving]);
+  }, [onSelectionChange, onDragging]);
 
   const startHandleDrag = (e: React.MouseEvent, key: HandleType) => {
     if (e.button !== 0) return;
@@ -153,6 +171,8 @@ export function useSelection({
     activeHandle.current = key;
     handleDragStart.current = { x: e.clientX, y: e.clientY };
     handleSelStart.current = { ...currentSel };
+    isResizingRef.current = true;
+    setIsDraggingResize(true);
   };
 
   const startMoveDrag = (e: React.MouseEvent) => {
@@ -168,7 +188,11 @@ export function useSelection({
     currentSel,
     currentSelRef,
     isDraggingMove,
+    isDraggingResize,
     isMoving,
+    isResizingRef,
+    pendingImageUpdate,
+    setPendingImageUpdate,
     startHandleDrag,
     startMoveDrag,
   };

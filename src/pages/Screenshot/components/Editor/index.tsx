@@ -30,9 +30,8 @@ const Editor: React.FC<EditorProps> = ({
   bgImageLogicalSize,
   selection,
   onClose,
-  onMove,
-  onMoving,
-  onResize,
+  onSelectionChange,
+  onDragging,
   onPin,
   onSendToWegent,
   pinned = false,
@@ -61,10 +60,6 @@ const Editor: React.FC<EditorProps> = ({
   const [ocrBlocks, setOcrBlocks] = useState<OcrBlock[] | null>(null);
   const [ocrError, setOcrError] = useState<string | null>(null);
 
-  // 移动结束后等待新图像加载完成，避免旧图像闪烁
-  // true = 移动刚结束，等待 bgImage 更新并加载完成
-  const [isWaitingNewImage, setIsWaitingNewImage] = useState(false);
-
   // ── 选区控制点 + 移动 hook ──
   // currentSel 在 resize/move 时实时更新（用于控制点位置）
   // 移动时：容器固定在原始 selection 位置，只有边框/工具栏/SVG遮罩跟着鼠标走
@@ -74,22 +69,28 @@ const Editor: React.FC<EditorProps> = ({
     startMoveDrag,
     isMoving,
     isDraggingMove,
+    isDraggingResize,
+    pendingImageUpdate,
+    setPendingImageUpdate,
   } = useSelection({
-    onMove: onMove
-      ? (sel) => {
-          // 移动结束时先标记等待新图像，避免旧图像闪烁
-          setIsWaitingNewImage(true);
-          onMove(sel);
-        }
-      : undefined,
-    onMoving,
-    onResize,
+    // 拖拽过程中实时回调（move/resize 共用），仅更新 SVG 遮罩挖空位置
+    onDragging,
+    // move/resize 结束统一回调，父组件同时更新 selection + bgImage（前端 canvas 裁剪）
+    onSelectionChange,
     selection,
   });
 
-  // 容器位置：resize 时跟 currentSel，move 时固定在原始 selection（图像不动）
-  const containerX = pinned ? 0 : isDraggingMove ? selection.x : currentSel.x;
-  const containerY = pinned ? 0 : isDraggingMove ? selection.y : currentSel.y;
+  // bgImage 变化时（父组件完成图像更新），重置 pendingImageUpdate 以显示 canvas
+  useEffect(() => {
+    if (pendingImageUpdate) {
+      setPendingImageUpdate(false);
+    }
+  }, [bgImage, pendingImageUpdate, setPendingImageUpdate]);
+
+  // 容器位置：始终固定在 selection（父组件确认的选区位置）
+  // resize/move 拖拽时 canvas 不动，SelectionBorder 用 fixed 定位跟着 currentSel 走
+  const containerX = pinned ? 0 : selection.x;
+  const containerY = pinned ? 0 : selection.y;
 
   // ── 绘图 hook ──
   const drawing = useDrawing({
@@ -127,24 +128,6 @@ const Editor: React.FC<EditorProps> = ({
   useEffect(() => {
     loadBgImage(bgImage);
   }, [bgImage, loadBgImage]);
-
-  // 当 bgImage 变化时（移动结束后重新裁剪），等图像加载完成后清除等待状态
-  useEffect(() => {
-    if (!isWaitingNewImage) return;
-    if (!bgImage) {
-      setIsWaitingNewImage(false);
-      return;
-    }
-    // 监听新图像加载完成
-    const img = new Image();
-    img.onload = () => setIsWaitingNewImage(false);
-    img.onerror = () => setIsWaitingNewImage(false);
-    img.src = bgImage;
-    return () => {
-      img.onload = null;
-      img.onerror = null;
-    };
-  }, [bgImage, isWaitingNewImage]);
 
   // Auto-focus canvas
   useEffect(() => {
@@ -414,9 +397,11 @@ const Editor: React.FC<EditorProps> = ({
 
   const menuLeft = canvasOffsetX + selection.w / 2;
   const ocrOverlayVisible = ocrBlocks !== null;
-  // 移动时 canvas 尺寸保持原始 selection（图像不动），resize 时跟 currentSel
-  const canvasDisplayW = isDraggingMove ? selection.w : currentSel.w;
-  const canvasDisplayH = isDraggingMove ? selection.h : currentSel.h;
+  // canvas 尺寸始终跟 selection prop（父组件确认的选区），不跟 currentSel（拖拽中实时值）
+  // 这样 resize/move 拖拽时 canvas 内容不变，只有边框跟着鼠标走
+  // 松开鼠标后父组件更新 selection，canvas 才切换到新尺寸并加载新图像
+  const canvasDisplayW = selection.w;
+  const canvasDisplayH = selection.h;
   const canvasPixelSize = getCanvasPixelSize(
     canvasDisplayW,
     canvasDisplayH,
@@ -485,9 +470,12 @@ const Editor: React.FC<EditorProps> = ({
           height: canvasDisplayH,
           marginLeft: canvasOffsetX,
           outline: "none",
-          // 移动时或等待新图像时隐藏 canvas，避免旧位置残留高亮或闪烁
+          // 移动/resize 拖拽时或等待图像更新时隐藏 canvas，避免旧位置残留高亮或闪烁
+          // 父组件同时更新 selection + bgImage（前端 canvas 裁剪），图像就绪后立即显示正确内容
           visibility:
-            isDraggingMove || isWaitingNewImage ? "hidden" : "visible",
+            isDraggingMove || isDraggingResize || pendingImageUpdate
+              ? "hidden"
+              : "visible",
           width: canvasDisplayW,
         }}
         tabIndex={0}
@@ -497,13 +485,11 @@ const Editor: React.FC<EditorProps> = ({
       <canvas ref={bgCanvasRef} style={{ display: "none" }} />
 
       {/* Selection border + resize handles */}
-      {/* 移动时用 fixed + currentSel 绝对坐标，边框跟着鼠标走但 canvas 图像不动 */}
+      {/* 始终用 fixed + currentSel 绝对坐标，边框实时跟着 currentSel 走，不依赖容器位置 */}
       <SelectionBorder
         canvasOffsetX={canvasOffsetX}
         currentSel={currentSel}
-        fixedOrigin={
-          isDraggingMove ? { x: currentSel.x, y: currentSel.y } : null
-        }
+        fixedOrigin={pinned ? null : { x: currentSel.x, y: currentSel.y }}
         onHandleMouseDown={startHandleDrag}
         pinned={pinned}
       />
@@ -582,25 +568,14 @@ const Editor: React.FC<EditorProps> = ({
         <div
           ref={toolbarRef}
           style={{
-            // resize 时：position absolute，相对容器（容器已实时跟随 currentSel.x/y）
-            //   left/top 由 getToolbarPos() 从 currentSel 实时计算，无 state/rAF 延迟
-            // 移动时：position fixed，绝对坐标 = currentSel.x/y + toolbarPos 偏移
+            // resize/move 时：position fixed，绝对坐标 = currentSel.x/y + toolbarPos 偏移
             // pinned 时：position absolute，居中于选区下方
-            left: pinned
-              ? menuLeft
-              : isDraggingMove
-                ? currentSel.x + (toolbarPos?.left ?? 0)
-                : (toolbarPos?.left ?? 0),
-            position: pinned
-              ? "absolute"
-              : isDraggingMove
-                ? "fixed"
-                : "absolute",
+            // 正常时：position fixed，绝对坐标（容器固定在 selection，需要用 fixed 跟 currentSel）
+            left: pinned ? menuLeft : currentSel.x + (toolbarPos?.left ?? 0),
+            position: pinned ? "absolute" : "fixed",
             top: pinned
               ? currentSel.h + 10
-              : isDraggingMove
-                ? currentSel.y + (toolbarPos?.top ?? currentSel.h + 10)
-                : (toolbarPos?.top ?? currentSel.h + 10),
+              : currentSel.y + (toolbarPos?.top ?? currentSel.h + 10),
             transform: pinned ? "translateX(-50%)" : "none",
             zIndex: 30,
           }}
