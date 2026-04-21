@@ -36,6 +36,7 @@ export const LISTEN_KEY = {
   REFRESH_CLIPBOARD_LIST: "refresh-clipboard-list",
   SEND_MODAL_DATA: "send-modal-data",
   SEND_MODAL_SEND: "send-modal-send",
+  SEND_MODAL_SUCCESS: "send-modal-success",
   SHOW_WINDOW: "show-window",
   STORE_CHANGED: "store-changed",
   TOGGLE_LISTEN_CLIPBOARD: "toggle-listen-clipboard",

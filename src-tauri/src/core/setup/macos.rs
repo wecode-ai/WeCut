@@ -29,12 +29,15 @@ pub fn platform(
     main_window: WebviewWindow,
     _preference_window: WebviewWindow,
 ) {
+
     let _ = app_handle.plugin(tauri_nspanel::init());
 
     let _ = app_handle.set_dock_visibility(false);
 
     let panel = match main_window.to_panel::<NsPanel>() {
-        Ok(panel) => panel,
+        Ok(panel) => {
+            panel
+        }
         Err(error) => {
             log::error!("[nspanel] failed to convert main window to panel: {}", error);
             return;

@@ -31,6 +31,11 @@ export interface SendModalPayload {
   sourceName?: string;
 }
 
+export interface SendSuccessPayload {
+  serviceType: "aiChat" | "workQueue";
+  message?: string;
+}
+
 /**
  * 设置当前要发送的 item（在主窗口中调用）
  */
@@ -113,6 +118,24 @@ export const listenSendModalSend = (
   callback: (payload: SendModalPayload) => void,
 ) => {
   return listen<SendModalPayload>(LISTEN_KEY.SEND_MODAL_SEND, (event) => {
+    callback(event.payload);
+  });
+};
+
+/**
+ * 发送成功事件到主窗口（在 SendModal 窗口中调用，关闭前通知主窗口显示成功提示）
+ */
+export const emitSendSuccess = async (payload: SendSuccessPayload) => {
+  await emit(LISTEN_KEY.SEND_MODAL_SUCCESS, payload);
+};
+
+/**
+ * 监听发送成功事件（在主窗口中调用）
+ */
+export const listenSendSuccess = (
+  callback: (payload: SendSuccessPayload) => void,
+) => {
+  return listen<SendSuccessPayload>(LISTEN_KEY.SEND_MODAL_SUCCESS, (event) => {
     callback(event.payload);
   });
 };

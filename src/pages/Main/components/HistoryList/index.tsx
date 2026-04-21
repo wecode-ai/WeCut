@@ -1,7 +1,8 @@
 import { useUpdateEffect } from "ahooks";
-import { FloatButton, Modal } from "antd";
+import { FloatButton, Modal, notification } from "antd";
 import clsx from "clsx";
 import { findIndex } from "es-toolkit/compat";
+import { t } from "i18next";
 import { useContext, useEffect, useRef } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { useSnapshot } from "valtio";
@@ -10,6 +11,7 @@ import { LISTEN_KEY } from "@/constants";
 import { useShortcutAction } from "@/contexts/ShortcutContext";
 import { useHistoryList } from "@/hooks/useHistoryList";
 import { useTauriListen } from "@/hooks/useTauriListen";
+import { listenSendSuccess } from "@/plugins/sendModal";
 import { globalStore } from "@/stores/global";
 import { MainContext } from "../..";
 import Item from "./components/Item";
@@ -40,6 +42,31 @@ const HistoryList = () => {
   const { reload, loadMore } = useHistoryList({ scrollToTop });
 
   useTauriListen(LISTEN_KEY.ACTIVATE_BACK_TOP, scrollToTop);
+
+  // 监听 SendModal 窗口发送成功事件，在主窗口显示成功通知
+  useEffect(() => {
+    const unlisten = listenSendSuccess((payload) => {
+      if (payload.serviceType === "workQueue") {
+        notification.success({
+          description: t("component.send_modal.success.work_queue_sent"),
+          duration: 3,
+          message: t("component.send_modal.success.title"),
+          placement: "topRight",
+        });
+      } else if (payload.serviceType === "aiChat") {
+        notification.success({
+          description: t("component.send_modal.success.ai_chat_sent"),
+          duration: 3,
+          message: t("component.send_modal.success.title"),
+          placement: "topRight",
+        });
+      }
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   // Navigation shortcuts
   useShortcutAction(
@@ -152,9 +179,10 @@ const HistoryList = () => {
   );
 
   // User-configured send shortcuts
+  // User-configured send shortcuts
   useShortcutAction(
     "list-send-to-ai-chat",
-    shortcut.wegent?.aiChat,
+    shortcut.wegent?.aiChat ?? "",
     () => {
       const { activeId } = rootState;
       if (activeId) {
@@ -166,7 +194,7 @@ const HistoryList = () => {
 
   useShortcutAction(
     "list-send-to-work-queue",
-    shortcut.wegent?.workQueue,
+    shortcut.wegent?.workQueue ?? "",
     () => {
       const { activeId } = rootState;
       if (activeId) {
@@ -179,7 +207,7 @@ const HistoryList = () => {
   // Backward compatibility for old send shortcut
   useShortcutAction(
     "list-send-to-ai",
-    shortcut.send,
+    shortcut.send ?? "",
     () => {
       const { activeId } = rootState;
       if (activeId) {
@@ -188,7 +216,6 @@ const HistoryList = () => {
     },
     { context: "normal", priority: 15 },
   );
-
   useUpdateEffect(() => {
     const { list } = rootState;
 

@@ -4,6 +4,7 @@
 	"version": "0.0.2",
 	"type": "module",
 	"scripts": {
+		"clean": "rm -rf dist src-tauri/target src-tauri/icons",
 		"dev": "run-s build:icon dev:vite",
 		"build": "run-s build:*",
 		"dev:vite": "vite",

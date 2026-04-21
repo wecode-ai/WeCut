@@ -80,7 +80,9 @@
       },
       "button": {
         "cancel": "Cancel",
+        "close": "Close",
         "direct_send": "Send Directly",
+        "go_to_task": "Go to Task",
         "send": "Send"
       },
       "error": {
@@ -97,6 +99,10 @@
       },
       "label": {
         "send": "Send"
+      },
+      "result": {
+        "description": "Successfully sent to Work Queue",
+        "title": "Sent Successfully"
       },
       "success": {
         "ai_chat_sent": "Message successfully sent to AI Chat",

@@ -80,7 +80,9 @@
       },
       "button": {
         "cancel": "取消",
+        "close": "关闭",
         "direct_send": "直接发送",
+        "go_to_task": "前往任务",
         "send": "发送"
       },
       "error": {
@@ -97,6 +99,10 @@
       },
       "label": {
         "send": "发送"
+      },
+      "result": {
+        "description": "已成功发送到任务队列",
+        "title": "发送成功"
       },
       "success": {
         "ai_chat_sent": "消息已成功发送到 AI Chat",

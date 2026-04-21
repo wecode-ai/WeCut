@@ -71,13 +71,20 @@
     "send_modal": {
       "button": {
         "cancel": "取消",
-        "direct_send": "直接發送"
+        "close": "關閉",
+        "direct_send": "直接發送",
+        "go_to_task": "前往任務",
+        "send": "發送"
       },
       "hints": {
         "input_extra_message": "請輸入補充資訊（可選）"
       },
       "label": {
         "send": "發送"
+      },
+      "result": {
+        "description": "已成功發送到任務佇列",
+        "title": "發送成功"
       },
       "work_queue": {
         "label": {
