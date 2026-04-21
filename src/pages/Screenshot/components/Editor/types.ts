@@ -84,10 +84,13 @@ export interface EditorProps {
   bgImageLogicalSize?: ImageLogicalSize;
   selection: Selection;
   onClose: () => void;
-  onMove?: (sel: Selection) => void;
-  /** 移动过程中实时回调（仅更新框位置，不触发重新裁剪） */
-  onMoving?: (sel: Selection) => void;
-  onResize?: (sel: Selection) => void;
+  /**
+   * move/resize 拖拽结束后回调，父组件负责同时更新 selection + bgImage（前端 canvas 裁剪）
+   * move 和 resize 统一走此回调，逻辑完全一致
+   */
+  onSelectionChange?: (sel: Selection) => void;
+  /** 拖拽过程中实时回调（move/resize 共用），仅用于更新 SVG 遮罩挖空位置 */
+  onDragging?: (sel: Selection) => void;
   onPin?: (dataUrl: string) => void;
   onSendToWegent?: (dataUrl: string) => void;
   pinned?: boolean;
