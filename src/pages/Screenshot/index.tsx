@@ -48,6 +48,10 @@ const Screenshot = () => {
     x: 0,
     y: 0,
   });
+  // 移动过程中实时更新的框位置（仅用于 SVG 遮罩挖空，不触发重新裁剪）
+  const [movingSelection, setMovingSelection] = useState<Selection | null>(
+    null,
+  );
   const [pinned, setPinned] = useState(false);
   const selectionConfirmedAtRef = useRef(0);
   const cropRequestIdRef = useRef(0);
@@ -75,6 +79,7 @@ const Screenshot = () => {
     setPreviewLogicalSize({ h: 0, w: 0 });
     setMonitorId(0);
     setSelection({ h: 0, w: 0, x: 0, y: 0 });
+    setMovingSelection(null);
     setPinned(false);
   }, []);
 
@@ -181,6 +186,7 @@ const Screenshot = () => {
     setPreviewLogicalSize({ h: 0, w: 0 });
     setMonitorId(0);
     setSelection({ h: 0, w: 0, x: 0, y: 0 });
+    setMovingSelection(null);
     setPinned(false);
     try {
       // 隐藏窗口（预创建窗口会 hide 保留，动态窗口会 close）
@@ -245,8 +251,59 @@ const Screenshot = () => {
       });
   };
 
+  // 用于移动选区时前端直接裁剪的图片对象缓存（预加载，避免每次创建）
+  const previewImageElRef = useRef<HTMLImageElement | null>(null);
+
+  // 当 previewImageDataUrl 变化时，预加载图片对象供前端裁剪使用
+  useEffect(() => {
+    if (!previewImageDataUrl) {
+      previewImageElRef.current = null;
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      previewImageElRef.current = img;
+    };
+    img.src = previewImageDataUrl;
+  }, [previewImageDataUrl]);
+
+  /** 移动过程中实时回调：只更新 SVG 遮罩挖空位置，不重新裁剪图像 */
+  const handleSelectionMoving = (sel: Selection) => {
+    setMovingSelection(sel);
+  };
+
+  /** 移动结束（mouseup）：更新 selection 并重新裁剪图像 */
   const handleSelectionMove = (sel: Selection) => {
+    setMovingSelection(null);
     setSelection(sel);
+    // 移动选区时直接在前端用 Canvas 裁剪，无需 IPC 调用，性能更高
+    const img = previewImageElRef.current;
+    if (!img?.complete || img.naturalWidth === 0) return;
+
+    const logicalW = previewLogicalSize.w || window.innerWidth;
+    const logicalH = previewLogicalSize.h || window.innerHeight;
+    const scaleX = img.naturalWidth / logicalW;
+    const scaleY = img.naturalHeight / logicalH;
+
+    const sx = Math.max(0, Math.floor(sel.x * scaleX));
+    const sy = Math.max(0, Math.floor(sel.y * scaleY));
+    const sw = Math.max(
+      1,
+      Math.min(Math.round(sel.w * scaleX), img.naturalWidth - sx),
+    );
+    const sh = Math.max(
+      1,
+      Math.min(Math.round(sel.h * scaleY), img.naturalHeight - sy),
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = sw;
+    canvas.height = sh;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+    setEditorImageDataUrl(canvas.toDataURL("image/png"));
+    setEditorImageCropped(true);
   };
 
   const handlePin = async (dataUrl: string) => {
@@ -278,6 +335,7 @@ const Screenshot = () => {
       setSelectionSource("");
       setPreviewLogicalSize({ h: 0, w: 0 });
       setSelection({ h: 0, w: 0, x: 0, y: 0 });
+      setMovingSelection(null);
       setPinned(false);
       logPerf("[screenshot][ui] action:pin_done", {
         elapsedMs: Math.round(performance.now() - startedAt),
@@ -333,9 +391,13 @@ const Screenshot = () => {
     }
   };
 
+  // SVG 遮罩使用移动中的实时位置（如果正在移动），否则用已确认的 selection
+  const maskSel = movingSelection ?? selection;
+
   return (
     <div
       style={{
+        cursor: "crosshair",
         height: "100vh",
         left: 0,
         overflow: "hidden",
@@ -363,7 +425,7 @@ const Screenshot = () => {
         />
       )}
 
-      {/* Selection overlay */}
+      {/* Selection overlay — handles its own dark mask + cutout via canvas */}
       {phase === "selecting" && previewImageDataUrl && (
         <SelectionOverlay
           bgImage={previewImageDataUrl}
@@ -373,23 +435,66 @@ const Screenshot = () => {
         />
       )}
 
-      {/* Editor */}
+      {/*
+        Unified dark overlay with selection cutout.
+        Shown in all post-selection phases (loadingCrop / editing) when not pinned.
+        During move, maskSel tracks the real-time frame position so the cutout
+        follows the cursor without re-rendering the editor image.
+        SelectionOverlay handles its own mask internally via canvas,
+        so this layer is only needed after selection is confirmed.
+      */}
+      {(phase === "loadingCrop" || phase === "editing") &&
+        !pinned &&
+        maskSel.w > 0 &&
+        maskSel.h > 0 && (
+          <svg
+            aria-hidden="true"
+            style={{
+              height: "100%",
+              left: 0,
+              pointerEvents: "none",
+              position: "absolute",
+              top: 0,
+              width: "100%",
+              zIndex: 5,
+            }}
+          >
+            <defs>
+              <mask id="selection-mask">
+                <rect fill="white" height="100%" width="100%" x="0" y="0" />
+                <rect
+                  fill="black"
+                  height={maskSel.h}
+                  width={maskSel.w}
+                  x={maskSel.x}
+                  y={maskSel.y}
+                />
+              </mask>
+            </defs>
+            <rect
+              fill="rgba(0,0,0,0.45)"
+              height="100%"
+              mask="url(#selection-mask)"
+              width="100%"
+              x="0"
+              y="0"
+            />
+          </svg>
+        )}
+
+      {/* Loading indicator — shown while cropping, overlaid on top of the unified mask */}
       {phase === "loadingCrop" && (
         <div
           style={{
-            alignItems: "center",
-            backdropFilter: "blur(2px)",
-            background: "rgba(0,0,0,0.35)",
             color: "#fff",
-            display: "flex",
             fontSize: 14,
-            height: "100%",
-            justifyContent: "center",
-            left: 0,
+            left: selection.x + selection.w / 2,
             letterSpacing: 0.2,
+            pointerEvents: "none",
             position: "absolute",
-            top: 0,
-            width: "100%",
+            textShadow: "0 1px 4px rgba(0,0,0,0.6)",
+            top: selection.y + selection.h / 2,
+            transform: "translate(-50%, -50%)",
             zIndex: 9,
           }}
         >
@@ -411,6 +516,7 @@ const Screenshot = () => {
           }
           onClose={handleClose}
           onMove={handleSelectionMove}
+          onMoving={handleSelectionMoving}
           onPin={handlePin}
           onSendToWegent={handleSendToWegent}
           pinned={pinned}

@@ -85,6 +85,8 @@ export interface EditorProps {
   selection: Selection;
   onClose: () => void;
   onMove?: (sel: Selection) => void;
+  /** 移动过程中实时回调（仅更新框位置，不触发重新裁剪） */
+  onMoving?: (sel: Selection) => void;
   onResize?: (sel: Selection) => void;
   onPin?: (dataUrl: string) => void;
   onSendToWegent?: (dataUrl: string) => void;
