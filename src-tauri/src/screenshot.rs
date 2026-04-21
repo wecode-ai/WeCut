@@ -481,22 +481,17 @@ pub async fn get_monitor_id_from_point(x: i32, y: i32) -> Result<u32, String> {
         return Ok(target_id);
     }
 
-    // 兼容前端传入"物理像素坐标"的情况：
-    // xcap monitor 的 x/y/width/height 是逻辑坐标，乘以 scale_factor 后按物理坐标匹配一次。
+    // 二次 fallback：直接用逻辑坐标与 monitor 的逻辑边界匹配
+    // （Monitor::from_point 在某些平台/版本可能失败，此处手动遍历）
     for monitor in monitors.iter() {
         let mx = monitor.x().unwrap_or_default() as f64;
         let my = monitor.y().unwrap_or_default() as f64;
         let mw = monitor.width().unwrap_or_default() as f64;
         let mh = monitor.height().unwrap_or_default() as f64;
-        let scale = monitor.scale_factor().unwrap_or(1.0) as f64;
 
-        let px = x as f64;
-        let py = y as f64;
-        let sx = mx * scale;
-        let sy = my * scale;
-        let sw = mw * scale;
-        let sh = mh * scale;
-        let hit = px >= sx && px < sx + sw && py >= sy && py < sy + sh;
+        let lx = x as f64;
+        let ly = y as f64;
+        let hit = lx >= mx && lx < mx + mw && ly >= my && ly < my + mh;
         if hit {
             let id = monitor.id().map_err(|e| format!("获取显示器ID失败: {}", e))?;
             return Ok(id);

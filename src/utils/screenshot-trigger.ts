@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { cursorPosition } from "@tauri-apps/api/window";
 import {
   logPerf,
@@ -26,8 +27,14 @@ const createScreenshotRequestId = (): string =>
 
 const resolveMonitorIdFromCursor = async (): Promise<number> => {
   const cursor = await cursorPosition();
-  const x = Math.round(cursor.x);
-  const y = Math.round(cursor.y);
+
+  // cursorPosition() 返回物理像素坐标，需转换为逻辑坐标
+  // 以匹配 Rust 端 Monitor::from_point 使用的逻辑坐标系
+  const appWindow = getCurrentWebviewWindow();
+  const scaleFactor = await appWindow.scaleFactor();
+  const logical = cursor.toLogical(scaleFactor);
+  const x = Math.round(logical.x);
+  const y = Math.round(logical.y);
 
   try {
     return await invoke<number>("get_monitor_id_from_point", { x, y });
