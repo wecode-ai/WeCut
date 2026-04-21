@@ -31,6 +31,7 @@ const Editor: React.FC<EditorProps> = ({
   selection,
   onClose,
   onMove,
+  onMoving,
   onResize,
   onPin,
   onSendToWegent,
@@ -43,9 +44,6 @@ const Editor: React.FC<EditorProps> = ({
   const bgCanvasRef = useRef<HTMLCanvasElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
-
-  // Track visual position offset (Cmd+drag moves container only, not canvas content)
-  const posOffset = useRef({ x: 0, y: 0 });
 
   const [activeTool, setActiveTool] = useState<DrawTool>("rect");
   const [activeColor, setActiveColor] = useState("#ef4444");
@@ -63,16 +61,35 @@ const Editor: React.FC<EditorProps> = ({
   const [ocrBlocks, setOcrBlocks] = useState<OcrBlock[] | null>(null);
   const [ocrError, setOcrError] = useState<string | null>(null);
 
-  // Cmd+drag to move selection
-  const isMovingSel = useRef(false);
-  const moveDragStart = useRef({ x: 0, y: 0 });
-  const moveSelStart = useRef({ h: 0, w: 0, x: 0, y: 0 });
+  // 移动结束后等待新图像加载完成，避免旧图像闪烁
+  // true = 移动刚结束，等待 bgImage 更新并加载完成
+  const [isWaitingNewImage, setIsWaitingNewImage] = useState(false);
 
-  // ── 选区控制点 hook ──
-  const { currentSel, startHandleDrag } = useSelection({
+  // ── 选区控制点 + 移动 hook ──
+  // currentSel 在 resize/move 时实时更新（用于控制点位置）
+  // 移动时：容器固定在原始 selection 位置，只有边框/工具栏/SVG遮罩跟着鼠标走
+  const {
+    currentSel,
+    startHandleDrag,
+    startMoveDrag,
+    isMoving,
+    isDraggingMove,
+  } = useSelection({
+    onMove: onMove
+      ? (sel) => {
+          // 移动结束时先标记等待新图像，避免旧图像闪烁
+          setIsWaitingNewImage(true);
+          onMove(sel);
+        }
+      : undefined,
+    onMoving,
     onResize,
     selection,
   });
+
+  // 容器位置：resize 时跟 currentSel，move 时固定在原始 selection（图像不动）
+  const containerX = pinned ? 0 : isDraggingMove ? selection.x : currentSel.x;
+  const containerY = pinned ? 0 : isDraggingMove ? selection.y : currentSel.y;
 
   // ── 绘图 hook ──
   const drawing = useDrawing({
@@ -110,6 +127,24 @@ const Editor: React.FC<EditorProps> = ({
   useEffect(() => {
     loadBgImage(bgImage);
   }, [bgImage, loadBgImage]);
+
+  // 当 bgImage 变化时（移动结束后重新裁剪），等图像加载完成后清除等待状态
+  useEffect(() => {
+    if (!isWaitingNewImage) return;
+    if (!bgImage) {
+      setIsWaitingNewImage(false);
+      return;
+    }
+    // 监听新图像加载完成
+    const img = new Image();
+    img.onload = () => setIsWaitingNewImage(false);
+    img.onerror = () => setIsWaitingNewImage(false);
+    img.src = bgImage;
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [bgImage, isWaitingNewImage]);
 
   // Auto-focus canvas
   useEffect(() => {
@@ -232,6 +267,7 @@ const Editor: React.FC<EditorProps> = ({
       handleCopy();
     }
   };
+
   // Canvas mouse handlers (wraps drawing hook + Cmd+drag logic)
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button !== 0) return;
@@ -246,10 +282,8 @@ const Editor: React.FC<EditorProps> = ({
       // 尝试命中 shape 进入移动模式
       const handled = handleMetaMouseDown(e);
       if (!handled) {
-        // 未命中 shape：移动 DOM 容器
-        isMovingSel.current = true;
-        moveDragStart.current = { x: e.clientX, y: e.clientY };
-        moveSelStart.current = { ...selection };
+        // 未命中 shape：通过 useSelection 统一处理移动
+        startMoveDrag(e);
       }
       return;
     }
@@ -258,18 +292,7 @@ const Editor: React.FC<EditorProps> = ({
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    // Move container position via Cmd+drag
-    if (isMovingSel.current) {
-      const dx = e.clientX - moveDragStart.current.x;
-      const dy = e.clientY - moveDragStart.current.y;
-      posOffset.current = { x: dx, y: dy };
-      if (containerRef.current) {
-        containerRef.current.style.left = `${selection.x + dx}px`;
-        containerRef.current.style.top = `${selection.y + dy}px`;
-      }
-      return;
-    }
-
+    // 移动由 useSelection 全局 mousemove 处理，此处只更新 cursor
     drawingMouseMove(e);
 
     // Update cursor
@@ -277,7 +300,7 @@ const Editor: React.FC<EditorProps> = ({
       if (e.metaKey) {
         if (pinned) {
           canvasRef.current.style.cursor = "move";
-        } else if (isMovingSel.current || isMovingShape.current) {
+        } else if (isMoving.current || isMovingShape.current) {
           canvasRef.current.style.cursor = "grabbing";
         } else {
           const hit = getHitTestResult(e);
@@ -291,21 +314,12 @@ const Editor: React.FC<EditorProps> = ({
   };
 
   const handleCanvasMouseUp = () => {
-    if (isMovingSel.current) {
-      isMovingSel.current = false;
-      onMove?.({
-        h: moveSelStart.current.h,
-        w: moveSelStart.current.w,
-        x: moveSelStart.current.x + posOffset.current.x,
-        y: moveSelStart.current.y + posOffset.current.y,
-      });
-      posOffset.current = { x: 0, y: 0 };
-      return;
-    }
+    // 移动和缩放的 mouseup 由 useSelection 全局 mouseup 处理
     drawingMouseUp();
   };
 
   // ── Pin 窗口尺寸调整 ──
+  // (posOffset ref 已移除，移动逻辑统一由 useSelection 管理)
   useEffect(() => {
     if (!pinned || !toolbarExpanded) return;
     let id1: number;
@@ -336,51 +350,19 @@ const Editor: React.FC<EditorProps> = ({
   const windowWidth = pinned ? Math.max(selection.w, pinMinWidth) : selection.w;
   const canvasOffsetX = pinned ? (windowWidth - selection.w) / 2 : 0;
 
-  const [toolbarLeft, setToolbarLeft] = useState<number>(
-    canvasOffsetX + selection.w,
-  );
-  // 工具栏垂直偏移（相对于选区容器的 top）
-  // 正值 = 选区下方，负值 = 选区上方（外部），或内部偏移（内部模式）
-  const [toolbarTop, setToolbarTop] = useState<number>(currentSel.h + 10);
+  // 工具栏尺寸 ref：初始化后基本固定，用 ref 存储避免触发重渲染
+  const toolbarSizeRef = useRef({ h: 0, w: 0 });
 
+  // 初始化时读取工具栏尺寸（两帧确保 DOM 已渲染）
   useEffect(() => {
     if (pinned) return;
-    // 用两帧确保 DOM 已渲染，toolbarRef 尺寸已稳定
     let id1: number;
     const id0 = requestAnimationFrame(() => {
       id1 = requestAnimationFrame(() => {
-        const toolbarW = toolbarRef.current?.scrollWidth ?? 0;
-        const toolbarH = toolbarRef.current?.scrollHeight ?? 0;
-        if (toolbarW === 0) return;
-
-        // 水平位置（外部模式）：右对齐选区右边缘，但不超出屏幕左右边界
-        const idealLeft = canvasOffsetX + selection.w - toolbarW;
-        const minLeft = 8 - selection.x;
-        const maxLeft = window.innerWidth - selection.x - toolbarW - 8;
-        const clampedLeft = Math.min(Math.max(idealLeft, minLeft), maxLeft);
-
-        // 垂直位置：检测工具栏是否会与 Dock/任务栏冲突
-        // screen.availHeight 是不含 Dock/任务栏的可用屏幕高度（macOS 会减去 Dock 高度）
-        const toolbarBottomAbs = selection.y + selection.h + 10 + toolbarH;
-        const availBottom = screen.availHeight - 8;
-
-        if (toolbarBottomAbs <= availBottom) {
-          // 下方空间足够，显示在选区下方（外部）
-          setToolbarLeft(clampedLeft);
-          setToolbarTop(currentSel.h + 10);
-        } else {
-          // 下方空间不足，检查上方是否有足够空间
-          const toolbarTopAbs = selection.y - 10 - toolbarH;
-          if (toolbarTopAbs >= 0) {
-            // 上方有足够空间，显示在选区上方（外部）
-            setToolbarLeft(clampedLeft);
-            setToolbarTop(-(10 + toolbarH));
-          } else {
-            // 上下都不够，显示在选区内部右上角
-            // 内部右上角：距右边缘 8px，距上边缘 8px
-            setToolbarLeft(canvasOffsetX + selection.w - toolbarW - 8);
-            setToolbarTop(8);
-          }
+        const w = toolbarRef.current?.scrollWidth ?? 0;
+        const h = toolbarRef.current?.scrollHeight ?? 0;
+        if (w > 0) {
+          toolbarSizeRef.current = { h, w };
         }
       });
     });
@@ -388,13 +370,56 @@ const Editor: React.FC<EditorProps> = ({
       cancelAnimationFrame(id0);
       cancelAnimationFrame(id1);
     };
-  }, [pinned, selection, canvasOffsetX, activeTool, currentSel.h]);
+  }, [pinned, activeTool]);
+
+  // 工具栏位置：直接从 currentSel 实时计算，不经过 state，消除 rAF 延迟跳动
+  // 返回相对于容器（containerX/Y）的偏移量
+  const getToolbarPos = () => {
+    const toolbarW = toolbarSizeRef.current.w;
+    const toolbarH = toolbarSizeRef.current.h;
+
+    // 水平位置：右对齐选区右边缘，但不超出屏幕左右边界
+    const idealLeft = canvasOffsetX + currentSel.w - toolbarW;
+    const minLeft = 8 - currentSel.x;
+    const maxLeft = window.innerWidth - currentSel.x - toolbarW - 8;
+    const clampedLeft =
+      toolbarW > 0
+        ? Math.min(Math.max(idealLeft, minLeft), maxLeft)
+        : idealLeft;
+
+    // 垂直位置：检测工具栏是否会与 Dock/任务栏冲突
+    // screen.availHeight 是不含 Dock/任务栏的可用屏幕高度（macOS 会减去 Dock 高度）
+    const toolbarBottomAbs = currentSel.y + currentSel.h + 10 + toolbarH;
+    const availBottom = screen.availHeight - 8;
+
+    if (toolbarH === 0 || toolbarBottomAbs <= availBottom) {
+      // 下方空间足够（或尺寸未初始化），显示在选区下方
+      return { left: clampedLeft, top: currentSel.h + 10 };
+    }
+
+    const toolbarTopAbs = currentSel.y - 10 - toolbarH;
+    if (toolbarTopAbs >= 0) {
+      // 上方有足够空间，显示在选区上方
+      return { left: clampedLeft, top: -(10 + toolbarH) };
+    }
+
+    // 上下都不够，显示在选区内部右上角
+    return {
+      left: canvasOffsetX + currentSel.w - (toolbarW > 0 ? toolbarW + 8 : 8),
+      top: 8,
+    };
+  };
+
+  const toolbarPos = pinned ? null : getToolbarPos();
 
   const menuLeft = canvasOffsetX + selection.w / 2;
   const ocrOverlayVisible = ocrBlocks !== null;
+  // 移动时 canvas 尺寸保持原始 selection（图像不动），resize 时跟 currentSel
+  const canvasDisplayW = isDraggingMove ? selection.w : currentSel.w;
+  const canvasDisplayH = isDraggingMove ? selection.h : currentSel.h;
   const canvasPixelSize = getCanvasPixelSize(
-    currentSel.w,
-    currentSel.h,
+    canvasDisplayW,
+    canvasDisplayH,
     window.devicePixelRatio || 1,
   );
 
@@ -409,15 +434,15 @@ const Editor: React.FC<EditorProps> = ({
       }}
       ref={containerRef}
       style={{
-        left: pinned ? 0 : selection.x,
+        left: containerX,
         position: "fixed",
-        top: pinned ? 0 : selection.y,
+        top: containerY,
         zIndex: 20,
       }}
       tabIndex={-1}
     >
       {/* Canvas */}
-      {/* Canvas */}
+      {/* 移动时隐藏 canvas，避免原始位置出现残留高亮区域 */}
       <canvas
         height={canvasPixelSize.height}
         onDoubleClick={(e) => {
@@ -457,10 +482,13 @@ const Editor: React.FC<EditorProps> = ({
                 ? "text"
                 : "crosshair",
           display: "block",
-          height: currentSel.h,
+          height: canvasDisplayH,
           marginLeft: canvasOffsetX,
           outline: "none",
-          width: currentSel.w,
+          // 移动时或等待新图像时隐藏 canvas，避免旧位置残留高亮或闪烁
+          visibility:
+            isDraggingMove || isWaitingNewImage ? "hidden" : "visible",
+          width: canvasDisplayW,
         }}
         tabIndex={0}
         width={canvasPixelSize.width}
@@ -469,9 +497,13 @@ const Editor: React.FC<EditorProps> = ({
       <canvas ref={bgCanvasRef} style={{ display: "none" }} />
 
       {/* Selection border + resize handles */}
+      {/* 移动时用 fixed + currentSel 绝对坐标，边框跟着鼠标走但 canvas 图像不动 */}
       <SelectionBorder
         canvasOffsetX={canvasOffsetX}
         currentSel={currentSel}
+        fixedOrigin={
+          isDraggingMove ? { x: currentSel.x, y: currentSel.y } : null
+        }
         onHandleMouseDown={startHandleDrag}
         pinned={pinned}
       />
@@ -550,11 +582,25 @@ const Editor: React.FC<EditorProps> = ({
         <div
           ref={toolbarRef}
           style={{
-            left: pinned ? menuLeft : toolbarLeft,
-            position: "absolute",
-            // pinned 模式固定在选区下方；非 pinned 模式使用 toolbarTop
-            // toolbarTop 为负值时工具栏显示在选区上方（避免与 Dock 冲突）
-            top: pinned ? currentSel.h + 10 : toolbarTop,
+            // resize 时：position absolute，相对容器（容器已实时跟随 currentSel.x/y）
+            //   left/top 由 getToolbarPos() 从 currentSel 实时计算，无 state/rAF 延迟
+            // 移动时：position fixed，绝对坐标 = currentSel.x/y + toolbarPos 偏移
+            // pinned 时：position absolute，居中于选区下方
+            left: pinned
+              ? menuLeft
+              : isDraggingMove
+                ? currentSel.x + (toolbarPos?.left ?? 0)
+                : (toolbarPos?.left ?? 0),
+            position: pinned
+              ? "absolute"
+              : isDraggingMove
+                ? "fixed"
+                : "absolute",
+            top: pinned
+              ? currentSel.h + 10
+              : isDraggingMove
+                ? currentSel.y + (toolbarPos?.top ?? currentSel.h + 10)
+                : (toolbarPos?.top ?? currentSel.h + 10),
             transform: pinned ? "translateX(-50%)" : "none",
             zIndex: 30,
           }}

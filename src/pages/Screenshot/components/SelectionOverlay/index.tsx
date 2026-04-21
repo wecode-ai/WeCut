@@ -426,11 +426,13 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     const pos = getCanvasPos(e);
 
     // 拖拽控制点调整选区大小
+    // 拖拽控制点调整选区大小
     if (activeHandle.current) {
       const { height: ch, width: cw } = getCanvasLogicalBounds();
       const { x: sx, y: sy, w: sw, h: sh } = handleSelStart.current;
-      const dx = pos.x - handleDragStart.current.x;
-      const dy = pos.y - handleDragStart.current.y;
+      // 选区的固定边（对边）坐标
+      const right = sx + sw; // 右边固定坐标
+      const bottom = sy + sh; // 下边固定坐标
 
       let nx = sx,
         ny = sy,
@@ -439,38 +441,46 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 
       switch (activeHandle.current) {
         case "nw":
-          nx = Math.min(sx + sw - 1, sx + dx);
-          ny = Math.min(sy + sh - 1, sy + dy);
-          nw = sw - (nx - sx);
-          nh = sh - (ny - sy);
+          // 左上角移动，右下角固定
+          nx = Math.min(right - 1, pos.x);
+          ny = Math.min(bottom - 1, pos.y);
+          nw = right - nx;
+          nh = bottom - ny;
           break;
         case "n":
-          ny = Math.min(sy + sh - 1, sy + dy);
-          nh = sh - (ny - sy);
+          // 上边移动，下边固定
+          ny = Math.min(bottom - 1, pos.y);
+          nh = bottom - ny;
           break;
         case "ne":
-          ny = Math.min(sy + sh - 1, sy + dy);
-          nh = sh - (ny - sy);
-          nw = Math.max(1, sw + dx);
+          // 右上角移动，左下角固定
+          ny = Math.min(bottom - 1, pos.y);
+          nh = bottom - ny;
+          nw = Math.max(1, pos.x - sx);
           break;
         case "w":
-          nx = Math.min(sx + sw - 1, sx + dx);
-          nw = sw - (nx - sx);
+          // 左边移动，右边固定
+          nx = Math.min(right - 1, pos.x);
+          nw = right - nx;
           break;
         case "e":
-          nw = Math.max(1, sw + dx);
+          // 右边移动，左边固定
+          nw = Math.max(1, pos.x - sx);
           break;
         case "sw":
-          nx = Math.min(sx + sw - 1, sx + dx);
-          nw = sw - (nx - sx);
-          nh = Math.max(1, sh + dy);
+          // 左下角移动，右上角固定
+          nx = Math.min(right - 1, pos.x);
+          nw = right - nx;
+          nh = Math.max(1, pos.y - sy);
           break;
         case "s":
-          nh = Math.max(1, sh + dy);
+          // 下边移动，上边固定
+          nh = Math.max(1, pos.y - sy);
           break;
         case "se":
-          nw = Math.max(1, sw + dx);
-          nh = Math.max(1, sh + dy);
+          // 右下角移动，左上角固定
+          nw = Math.max(1, pos.x - sx);
+          nh = Math.max(1, pos.y - sy);
           break;
       }
 
@@ -479,7 +489,6 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
       ny = Math.max(0, ny);
       if (nx + nw > cw) nw = cw - nx;
       if (ny + nh > ch) nh = ch - ny;
-
       currentSel.current = { h: nh, w: nw, x: nx, y: ny };
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = requestAnimationFrame(drawFrame);
@@ -574,6 +583,8 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
 
     const { h, w, x, y } = currentSel.current;
     const normSel = normalizeSelection(x, y, w, h);
+    // 将 currentSel 更新为规范化后的选区，确保控制点坐标与视觉位置一致
+    currentSel.current = normSel;
     if (normSel.w > 10 && normSel.h > 10) {
       onConfirm(normSel);
     }
@@ -657,9 +668,6 @@ const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
     }
 
     if (e.metaKey && isInsideSel(pos.x, pos.y)) return "grab";
-
-    // 悬停在窗口上时显示 pointer
-    if (w === 0 && h === 0 && hoveredWindowRef.current) return "pointer";
 
     return "crosshair";
   };
