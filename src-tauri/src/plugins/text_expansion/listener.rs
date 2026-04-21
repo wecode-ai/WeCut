@@ -76,15 +76,12 @@ impl<R: Runtime> TextExpansionListener<R> {
                             if let Some(ch) = key_code_to_char(key_code as u16) {
                                 if let Ok(mut m) = matcher.lock() {
                                     if let Some(expansion) = m.on_char(ch) {
-                                        // Match found! Perform expansion
-                                        drop(m); // Release lock before async operation
+                                        // Clear buffer so synthetic events don't cause false matches
+                                        m.clear();
 
-                                        // Get trigger length for backspace count
-                                        let trigger_len = if let Ok(m) = matcher.lock() {
-                                            m.get_trigger_len(&expansion).unwrap_or(0)
-                                        } else {
-                                            0
-                                        };
+                                        let trigger_len =
+                                            m.get_trigger_len(&expansion).unwrap_or(0);
+                                        drop(m);
 
                                         perform_expansion(&app, &expansion, trigger_len);
                                     }
@@ -185,54 +182,42 @@ fn key_code_to_char(key_code: u16) -> Option<char> {
 }
 
 #[cfg(target_os = "macos")]
-fn perform_expansion<R: Runtime>(_app: &AppHandle<R>, content: &str, trigger_len: usize) {
-    use std::process::Command;
+fn perform_expansion<R: Runtime>(_app: &AppHandle<R>, content: &str, backspace_count: usize) {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
     use std::thread;
     use std::time::Duration;
 
-    // Clone content for the async block
     let content = content.to_string();
 
     thread::spawn(move || {
-        // Small delay to ensure the key event is processed
-        thread::sleep(Duration::from_millis(50));
+        // Brief delay to let the suppressed key event fully resolve
+        thread::sleep(Duration::from_millis(20));
 
-        // Simulate backspaces to delete trigger word
-        let backspace_script = format!(
-            r#"tell application "System Events" to repeat {} times
-                key code 51
-            end repeat"#,
-            trigger_len
-        );
-
-        let _ = Command::new("osascript")
-            .args(["-e", &backspace_script])
-            .output();
-
-        // Small delay after backspaces
-        thread::sleep(Duration::from_millis(50));
-
-        // Write content to clipboard using pbcopy
-        let mut echo = Command::new("echo")
-            .arg(&content)
-            .stdout(std::process::Stdio::piped())
-            .spawn()
-            .expect("Failed to start echo");
-
-        let pbcopy = Command::new("pbcopy")
-            .stdin(echo.stdout.take().unwrap())
-            .output();
-
-        if pbcopy.is_ok() {
-            // Small delay before paste
-            thread::sleep(Duration::from_millis(50));
-
-            // Simulate Cmd+V paste
-            let paste_script =
-                r#"tell application "System Events" to keystroke "v" using command down"#;
-            let _ = Command::new("osascript")
-                .args(["-e", paste_script])
-                .output();
+        // Write expansion text to clipboard via pbcopy (handles all chars / Unicode safely)
+        if let Ok(mut pbcopy) = Command::new("pbcopy").stdin(Stdio::piped()).spawn() {
+            if let Some(stdin) = pbcopy.stdin.as_mut() {
+                let _ = stdin.write_all(content.as_bytes());
+            }
+            let _ = pbcopy.wait();
         }
+
+        // Single osascript: delete trigger chars then paste — much faster than two calls + keystroke
+        let script = if backspace_count > 0 {
+            format!(
+                r#"tell application "System Events"
+    repeat {n} times
+        key code 51
+    end repeat
+    delay 0.02
+    keystroke "v" using command down
+end tell"#,
+                n = backspace_count
+            )
+        } else {
+            r#"tell application "System Events" to keystroke "v" using command down"#.to_string()
+        };
+
+        let _ = Command::new("osascript").args(["-e", &script]).output();
     });
 }
