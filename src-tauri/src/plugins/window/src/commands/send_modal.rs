@@ -20,7 +20,7 @@ pub async fn show_send_modal_window<R: Runtime>(
 
         // 窗口尺寸
         let modal_width = 520;
-        let modal_height = 320;
+        let modal_height = 600;
 
         // 获取当前显示器，计算屏幕中心位置
         let monitor = window

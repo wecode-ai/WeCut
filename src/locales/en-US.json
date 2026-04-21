@@ -85,10 +85,6 @@
         "go_to_task": "Go to Task",
         "send": "Send"
       },
-      "result": {
-        "description": "Successfully sent to Work Queue",
-        "title": "Sent Successfully"
-      },
       "error": {
         "ai_chat_not_configured": "AI Chat API is not configured. Please configure API Key and Base URL first.",
         "config_required": "Configuration Required",
@@ -103,6 +99,10 @@
       },
       "label": {
         "send": "Send"
+      },
+      "result": {
+        "description": "Successfully sent to Work Queue",
+        "title": "Sent Successfully"
       },
       "success": {
         "ai_chat_sent": "Message successfully sent to AI Chat",

@@ -1,5 +1,5 @@
 import { readFile } from "@tauri-apps/plugin-fs";
-import { open as openUrl } from "@tauri-apps/plugin-opener";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useBoolean } from "ahooks";
 import { Button, Form, Modal, notification, Space, Typography } from "antd";
 import { find, isString } from "es-toolkit/compat";

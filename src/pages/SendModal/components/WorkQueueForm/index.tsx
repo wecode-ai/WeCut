@@ -1,4 +1,4 @@
-import { Button, Form, Input, notification, Tooltip } from "antd";
+import { Button, Form, Input, Modal, notification, Tooltip } from "antd";
 import { isString } from "es-toolkit/compat";
 import { t } from "i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -28,7 +28,7 @@ const CONTENT_ATTACHMENT_THRESHOLD = 2048;
 interface FormFields {
   title: string;
   note: string;
-  /** 发送内容（常驻字段，可手动输入，图片类型时可通过 OCR 填入） */
+  /** 发送内容（仅文本类型时显示，可手动输入覆盖剪切板原文） */
   content: string;
   /** 目标队列名称 */
   queueName: string;
@@ -322,6 +322,8 @@ const WorkQueueForm = () => {
   const [queues, setQueues] = useState<WorkQueueItem[]>([]);
   const [loadingQueues, setLoadingQueues] = useState(false);
   const [queueSearch, setQueueSearch] = useState("");
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [countdown, setCountdown] = useState(10);
   const contentRef = useRef<any>(null);
 
   // 优先使用新的 wegent 配置，兼容旧配置
@@ -431,30 +433,30 @@ const WorkQueueForm = () => {
       let files: string[] | undefined;
 
       if (item) {
-        const hasText =
+        const isTextType =
           item.type === "text" || item.type === "html" || item.type === "rtf";
-        const hasFiles = item.type === "files" || item.type === "image";
+        const isFilesType = item.type === "files" || item.type === "image";
 
-        if (hasText) {
+        if (isTextType) {
           const value = item.value as unknown;
           if (isString(value)) {
             content = value;
           } else if (Array.isArray(value)) {
             content = value.join(", ");
           }
+          // 文本类型：允许用户在 content 输入框中覆盖原始内容
+          if (values.content?.trim()) {
+            content = values.content.trim();
+          }
         }
 
-        if (hasFiles) {
+        if (isFilesType) {
           if (item.type === "files") {
             files = Array.isArray(item.value) ? item.value : [item.value];
           } else if (item.type === "image") {
             files = isString(item.value) ? [item.value] : [];
           }
-        }
-
-        // content 字段（常驻）：如果有内容，覆盖自动提取的文本
-        if (values.content?.trim()) {
-          content = values.content.trim();
+          // 附件模式：不显示 content 输入框，content 保持 undefined，只发附件
         }
       }
 
@@ -472,13 +474,8 @@ const WorkQueueForm = () => {
         title: values.title,
       });
 
-      notification.success({
-        description: t("component.send_modal.success.work_queue_sent"),
-        duration: 3,
-        message: t("component.send_modal.success.title"),
-      });
-
-      await closeCurrentSendModal();
+      // 显示成功弹窗，用户关闭后再关闭窗口
+      setSuccessModalOpen(true);
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -495,6 +492,47 @@ const WorkQueueForm = () => {
     }
   }, [effectiveConfig, form, item]);
 
+  const handleSuccessModalClose = useCallback(async () => {
+    setSuccessModalOpen(false);
+    setCountdown(10);
+    await closeCurrentSendModal();
+  }, []);
+
+  // 成功弹窗显示时：10s 倒计时自动关闭 + 回车键关闭
+  useEffect(() => {
+    if (!successModalOpen) return;
+
+    setCountdown(10);
+
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    const autoCloseTimer = setTimeout(() => {
+      handleSuccessModalClose();
+    }, 10000);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSuccessModalClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(autoCloseTimer);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [successModalOpen, handleSuccessModalClose]);
+
   const handleCancel = async () => {
     await closeCurrentSendModal();
   };
@@ -503,7 +541,7 @@ const WorkQueueForm = () => {
   const hasContent =
     item?.type === "text" || item?.type === "html" || item?.type === "rtf";
 
-  // 判断是否有文件内容
+  // 判断是否有文件内容（附件模式）
   const hasFiles = item?.type === "files" || item?.type === "image";
 
   // 获取文件列表
@@ -572,30 +610,32 @@ const WorkQueueForm = () => {
             />
           </Form.Item>
 
-          {/* 内容字段（常驻），可手动输入或通过 OCR 填入 */}
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, cur) => prev.content !== cur.content}
-          >
-            {({ getFieldValue }) => (
-              <Form.Item
-                label={
-                  <ContentFieldLabel value={getFieldValue("content") || ""} />
-                }
-                name="content"
-              >
-                <TextArea
-                  autoComplete="off"
-                  placeholder={t(
-                    "component.send_modal.work_queue.placeholder.content",
-                    "可选，图片类型可通过 OCR 识别后填入…",
-                  )}
-                  ref={contentRef}
-                  rows={4}
-                />
-              </Form.Item>
-            )}
-          </Form.Item>
+          {/* 内容字段：仅文本类型（非附件模式）时显示，附件模式只能填备注 */}
+          {!hasFiles && (
+            <Form.Item
+              noStyle
+              shouldUpdate={(prev, cur) => prev.content !== cur.content}
+            >
+              {({ getFieldValue }) => (
+                <Form.Item
+                  label={
+                    <ContentFieldLabel value={getFieldValue("content") || ""} />
+                  }
+                  name="content"
+                >
+                  <TextArea
+                    autoComplete="off"
+                    placeholder={t(
+                      "component.send_modal.work_queue.placeholder.content",
+                      "可选",
+                    )}
+                    ref={contentRef}
+                    rows={4}
+                  />
+                </Form.Item>
+              )}
+            </Form.Item>
+          )}
 
           <Form.Item
             label={t("component.send_modal.work_queue.label.title", "标题")}
@@ -625,6 +665,23 @@ const WorkQueueForm = () => {
           </Form.Item>
         </Form>
       </div>
+
+      {/* 发送成功弹窗 */}
+      <Modal
+        centered
+        footer={
+          <Button onClick={handleSuccessModalClose} type="primary">
+            {t("component.send_modal.button.close", "关闭")} ({countdown}s)
+          </Button>
+        }
+        onCancel={handleSuccessModalClose}
+        open={successModalOpen}
+        title={t("component.send_modal.result.title", "发送成功")}
+      >
+        <p>
+          {t("component.send_modal.result.description", "已成功发送到任务队列")}
+        </p>
+      </Modal>
 
       {/* 固定在底部的操作按钮 */}
       <div className="send-modal-actions">

@@ -1,5 +1,5 @@
 import { useMount } from "ahooks";
-import { ConfigProvider, theme } from "antd";
+import { App, ConfigProvider, theme } from "antd";
 import { useEffect, useState } from "react";
 import { useSnapshot } from "valtio";
 import { LISTEN_KEY } from "@/constants";
@@ -62,16 +62,18 @@ const SendModal = () => {
         algorithm: appearance.isDark ? darkAlgorithm : defaultAlgorithm,
       }}
     >
-      <div className={`send-modal-window ${appearance.isDark ? "dark" : ""}`}>
-        <Header
-          isAiChat={isAiChat}
-          title={isAiChat ? "发送到 AI Chat" : "发送到工作队列"}
-        />
+      <App>
+        <div className={`send-modal-window ${appearance.isDark ? "dark" : ""}`}>
+          <Header
+            isAiChat={isAiChat}
+            title={isAiChat ? "发送到 AI Chat" : "发送到工作队列"}
+          />
 
-        <div className="send-modal-content">
-          {isAiChat ? <AiChatForm /> : <WorkQueueForm />}
+          <div className="send-modal-content">
+            {isAiChat ? <AiChatForm /> : <WorkQueueForm />}
+          </div>
         </div>
-      </div>
+      </App>
     </ConfigProvider>
   );
 };
