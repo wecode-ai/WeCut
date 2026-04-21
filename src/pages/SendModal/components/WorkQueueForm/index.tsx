@@ -26,7 +26,6 @@ const { TextArea } = Input;
 const CONTENT_ATTACHMENT_THRESHOLD = 2048;
 
 interface FormFields {
-  title: string;
   note: string;
   /** 发送内容（仅文本类型时显示，可手动输入覆盖剪切板原文） */
   content: string;
@@ -64,57 +63,6 @@ const FileList = ({ files }: { files: string[] }) => {
           </div>
         );
       })}
-    </div>
-  );
-};
-
-// 内容预览（纯文本类型）
-const ContentPreview = ({ item }: { item?: DatabaseSchemaHistory | null }) => {
-  if (!item) return null;
-
-  const hasText =
-    item.type === "text" || item.type === "html" || item.type === "rtf";
-
-  if (!hasText) return null;
-
-  let preview = "";
-  const value = item.value as unknown;
-  if (isString(value)) {
-    preview = value;
-  } else if (Array.isArray(value)) {
-    preview = value.join(", ");
-  }
-
-  const isLarge =
-    new TextEncoder().encode(preview).length > CONTENT_ATTACHMENT_THRESHOLD;
-
-  return (
-    <div className="content-preview-section">
-      <div className="section-label">
-        <UnoIcon name="i-lucide:file-text" size={14} />
-        <span>内容</span>
-        {isLarge && (
-          <Tooltip
-            title={t(
-              "component.send_modal.work_queue.hint.large_content_as_attachment",
-              "内容超过 2KB，将作为文本附件发送",
-            )}
-          >
-            <span className="content-size-badge">
-              <UnoIcon name="i-lucide:paperclip" size={12} />
-              <span>
-                {t(
-                  "component.send_modal.work_queue.hint.as_attachment",
-                  "附件",
-                )}
-              </span>
-            </span>
-          </Tooltip>
-        )}
-      </div>
-      <div className="content-preview-box">
-        <pre className="preview-text">{preview}</pre>
-      </div>
     </div>
   );
 };
@@ -358,14 +306,29 @@ const WorkQueueForm = () => {
       const currentItem = getCurrentSendItem();
       setItem(currentItem);
 
+      // 将剪切板文本内容填入 content 字段作为默认值
+      let defaultContent = "";
+      if (currentItem) {
+        const isTextType =
+          currentItem.type === "text" ||
+          currentItem.type === "html" ||
+          currentItem.type === "rtf";
+        if (isTextType) {
+          const value = currentItem.value as unknown;
+          if (isString(value)) {
+            defaultContent = value;
+          } else if (Array.isArray(value)) {
+            defaultContent = value.join(", ");
+          }
+        }
+      }
+
       form.setFieldsValue({
-        content: "",
+        content: defaultContent,
         note: effectiveConfig?.defaults?.note || "",
         queueName: effectiveConfig?.queueName || "",
-        title: effectiveConfig?.defaults?.title || "",
       });
     };
-
     // 初始加载
     loadItem();
 
@@ -379,9 +342,9 @@ const WorkQueueForm = () => {
     };
   }, [form, effectiveConfig]);
 
-  // OCR 结果填入 content 字段，并附加提示词前缀
+  // OCR 结果填入 note（备注）字段，并附加提示词前缀
   const handleOcrResult = (text: string) => {
-    const current = form.getFieldValue("content") || "";
+    const current = form.getFieldValue("note") || "";
     const prefix = current
       ? ""
       : t(
@@ -389,8 +352,7 @@ const WorkQueueForm = () => {
           "以下是图片中识别到的文字内容：\n",
         );
     const newValue = `${prefix}${current}${current ? "\n" : ""}${text}`;
-    form.setFieldValue("content", newValue);
-    contentRef.current?.focus();
+    form.setFieldValue("note", newValue);
   };
 
   const handleSubmit = useCallback(async () => {
@@ -471,7 +433,6 @@ const WorkQueueForm = () => {
         content,
         files,
         note: values.note,
-        title: values.title,
       });
 
       // 显示成功弹窗，用户关闭后再关闭窗口
@@ -537,10 +498,6 @@ const WorkQueueForm = () => {
     await closeCurrentSendModal();
   };
 
-  // 判断是否有文本内容（用于显示预览）
-  const hasContent =
-    item?.type === "text" || item?.type === "html" || item?.type === "rtf";
-
   // 判断是否有文件内容（附件模式）
   const hasFiles = item?.type === "files" || item?.type === "image";
 
@@ -571,9 +528,6 @@ const WorkQueueForm = () => {
     <div className="work-queue-form-container">
       {/* 可滚动的内容区域 */}
       <div className="work-queue-form-content">
-        {/* 内容预览区域（仅文本类型） */}
-        {hasContent && <ContentPreview item={item} />}
-
         {/* 文件列表区域（仅图片/文件类型），图片时支持 OCR 填入 content */}
         {hasFiles && (
           <FilesSection
@@ -636,19 +590,6 @@ const WorkQueueForm = () => {
               )}
             </Form.Item>
           )}
-
-          <Form.Item
-            label={t("component.send_modal.work_queue.label.title", "标题")}
-            name="title"
-          >
-            <Input
-              autoComplete="off"
-              placeholder={t(
-                "component.send_modal.work_queue.placeholder.optional",
-                "可选",
-              )}
-            />
-          </Form.Item>
 
           <Form.Item
             label={t("component.send_modal.work_queue.label.note", "备注")}
