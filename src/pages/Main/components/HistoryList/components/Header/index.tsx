@@ -48,7 +48,8 @@ const Header: FC<HeaderProps> = (props) => {
     sourceAppIcon,
     sourceAppPath,
   } = data;
-  const { rootState, handlePasteResult } = useContext(MainContext);
+  const { rootState, handlePasteResult, touchHistoryItem } =
+    useContext(MainContext);
   const { t, i18n } = useTranslation();
   const { content, wegent } = useSnapshot(clipboardStore);
   const { env } = useSnapshot(globalStore);
@@ -144,10 +145,15 @@ const Header: FC<HeaderProps> = (props) => {
 
     switch (key) {
       case "copy":
-        return writeToClipboard(data);
+        await writeToClipboard(data);
+        touchHistoryItem?.(data);
+        return;
       case "pastePlain": {
         const result = await pasteToClipboard(data, true);
         handlePasteResult?.(result);
+        if (result.success) {
+          touchHistoryItem?.(data);
+        }
         return;
       }
       case "note":

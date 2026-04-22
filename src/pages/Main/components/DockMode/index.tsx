@@ -1,7 +1,7 @@
 import type { InputRef } from "antd";
 import { Modal } from "antd";
 import clsx from "clsx";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 import { LISTEN_KEY } from "@/constants";
 import { useShortcut, useShortcutAction } from "@/contexts/ShortcutContext";
@@ -25,6 +25,9 @@ const DockMode = () => {
   const { shortcut, env } = useSnapshot(globalStore);
   const { wegent, aiSend } = useSnapshot(clipboardStore);
   const [searchActive, setSearchActive] = useState(Boolean(rootState.search));
+  const [frozenItems, setFrozenItems] = useState<
+    DatabaseSchemaHistory[] | null
+  >(null);
 
   // WegentChat 是否显示（由环境变量控制）
   const wegentChatEnabled = env.features?.wegentChat ?? false;
@@ -41,6 +44,14 @@ const DockMode = () => {
 
     rootState.activeId = firstItem.id;
   };
+
+  const freezeVisibleItems = useCallback(() => {
+    setFrozenItems([...rootState.list]);
+  }, [rootState]);
+
+  const releaseVisibleItems = useCallback(() => {
+    setFrozenItems(null);
+  }, []);
 
   const { loadMore } = useHistoryList({
     scrollToTop: scrollToStart,
@@ -421,6 +432,7 @@ const DockMode = () => {
       hideWindow();
     },
     onFocus() {
+      releaseVisibleItems();
       if (!windowConfig.rememberActiveId) {
         scrollToStart();
       }
@@ -553,6 +565,7 @@ const DockMode = () => {
   }, [searchActive, rootState.search]);
 
   const totalHeight = getDockContentHeight(scale);
+  const railItems = frozenItems ?? rootState.list;
 
   return (
     <div
@@ -579,9 +592,11 @@ const DockMode = () => {
 
       <DockCardRail
         activeId={rootState.activeId}
+        afterHide={releaseVisibleItems}
+        beforeActivate={freezeVisibleItems}
         deleteModal={deleteModal}
         hasFilters={Boolean(rootState.search) || rootState.group !== "all"}
-        items={rootState.list}
+        items={railItems}
         onActiveChange={(id) => {
           rootState.activeId = id;
         }}

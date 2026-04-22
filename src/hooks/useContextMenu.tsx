@@ -18,18 +18,25 @@ import { useShortcut } from "@/contexts/ShortcutContext";
 import { deleteHistory, updateHistory } from "@/database/history";
 import { hasTag } from "@/database/tag";
 import { MainContext } from "@/pages/Main";
-import type { ItemProps } from "@/pages/Main/components/HistoryList/components/Item";
 import { pasteToClipboard, writeToClipboard } from "@/plugins/clipboard";
 import { hideWindow } from "@/plugins/window";
 import { clipboardStore, tagActions } from "@/stores/clipboard";
 import { globalStore } from "@/stores/global";
 import { textExpansionActions } from "@/stores/textExpansion";
+import type { DatabaseSchemaHistory } from "@/types/database";
+import { runDockAction } from "@/utils/dockAction";
 import { isMac } from "@/utils/is";
 import { join } from "@/utils/path";
 
-interface UseContextMenuProps extends ItemProps {
+interface UseContextMenuProps {
+  afterHide?: () => void;
+  beforeActivate?: () => void;
+  data: DatabaseSchemaHistory;
+  deleteModal: HookAPI;
+  handleNote: () => void;
   handleNext: () => void;
-  handleSend: () => void;
+  handleSend: (serviceType?: "aiChat" | "workQueue") => void;
+  index: number;
 }
 
 interface ContextMenuItem extends MenuItemOptions {
@@ -37,18 +44,39 @@ interface ContextMenuItem extends MenuItemOptions {
 }
 
 export const useContextMenu = (props: UseContextMenuProps) => {
-  const { data, deleteModal, handleNote, handleNext } = props;
+  const {
+    afterHide,
+    beforeActivate,
+    data,
+    deleteModal,
+    handleNote,
+    handleNext,
+  } = props;
   const { id, type, value, group, favorite, subtype } = data;
   const { t } = useTranslation();
   const { env } = useSnapshot(globalStore);
-  const { rootState } = useContext(MainContext);
+  const { rootState, touchHistoryItem } = useContext(MainContext);
   const { pushContext, popContext } = useShortcut();
 
   const pasteAsText = async () => {
-    await pasteToClipboard(data, true);
-
     if (clipboardStore.window.style === "dock") {
-      await hideWindow();
+      await runDockAction({
+        action: () => pasteToClipboard(data, true),
+        afterHide,
+        beforeAction: beforeActivate,
+        hideWindow,
+        onResult: (result) => {
+          if (result.success) {
+            touchHistoryItem?.(data);
+          }
+        },
+      });
+      return;
+    }
+
+    const result = await pasteToClipboard(data, true);
+    if (result.success) {
+      touchHistoryItem?.(data);
     }
   };
 
@@ -143,7 +171,10 @@ export const useContextMenu = (props: UseContextMenuProps) => {
     try {
       const items: ContextMenuItem[] = [
         {
-          action: () => writeToClipboard(data),
+          action: async () => {
+            await writeToClipboard(data);
+            touchHistoryItem?.(data);
+          },
           text: t("clipboard.button.context_menu.copy"),
         },
         {

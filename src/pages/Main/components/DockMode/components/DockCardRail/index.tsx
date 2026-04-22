@@ -9,6 +9,8 @@ import PasteCard from "../PasteCard";
 export interface DockCardRailProps {
   items: DatabaseSchemaHistory[];
   activeId?: string;
+  afterHide?: () => void;
+  beforeActivate?: () => void;
   deleteModal: HookAPI;
   hasFilters?: boolean;
   onActiveChange: (id: string) => void;
@@ -22,6 +24,8 @@ const DockCardRail: FC<DockCardRailProps> = (props) => {
   const {
     items,
     activeId,
+    afterHide,
+    beforeActivate,
     deleteModal,
     hasFilters,
     onActiveChange,
@@ -156,6 +160,8 @@ const DockCardRail: FC<DockCardRailProps> = (props) => {
                 >
                   <PasteCard
                     active={item.id === activeId}
+                    afterHide={afterHide}
+                    beforeActivate={beforeActivate}
                     data={item}
                     deleteModal={deleteModal}
                     handleNote={() => {

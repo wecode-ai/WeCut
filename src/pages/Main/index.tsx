@@ -13,6 +13,7 @@ import {
 import { useSnapshot } from "valtio";
 import Audio, { type AudioRef } from "@/components/Audio";
 import { LISTEN_KEY, PRESET_SHORTCUT } from "@/constants";
+import { updateHistory } from "@/database/history";
 import { useClipboard } from "@/hooks/useClipboard";
 import { useImmediateKey } from "@/hooks/useImmediateKey";
 import { useRegister } from "@/hooks/useRegister";
@@ -32,6 +33,8 @@ import type {
   DatabaseSchemaHistory,
 } from "@/types/database";
 import type { Store } from "@/types/store";
+import { formatDate } from "@/utils/dayjs";
+import { touchHistoryItemInList } from "@/utils/historyActivation";
 import { deepAssign } from "@/utils/object";
 import { triggerScreenshotFromCursor } from "@/utils/screenshot-trigger";
 import DockMode from "./components/DockMode";
@@ -61,18 +64,23 @@ const INITIAL_STATE: State = {
 interface MainContextValue {
   rootState: State;
   handlePasteResult?: (result: PasteResult) => void;
+  touchHistoryItem?: (data: DatabaseSchemaHistory) => void;
 }
 
 export const MainContext = createContext<MainContextValue>({
   handlePasteResult: undefined,
   rootState: INITIAL_STATE,
+  touchHistoryItem: undefined,
 });
 
 const Main = () => {
   const state = useReactive<State>(INITIAL_STATE);
   const { shortcut } = useSnapshot(globalStore);
-  const { window, notification: notificationStore } =
-    useSnapshot(clipboardStore);
+  const {
+    content,
+    window,
+    notification: notificationStore,
+  } = useSnapshot(clipboardStore);
   const eventBus = useEventEmitter<EventBusPayload>();
   const audioRef = useRef<AudioRef>(null);
 
@@ -101,6 +109,20 @@ const Main = () => {
       }
     },
     [notificationStore.pasteSuccess, t],
+  );
+
+  const touchHistoryItem = useCallback(
+    (data: DatabaseSchemaHistory) => {
+      if (!content.autoSort) {
+        return;
+      }
+
+      const createTime = formatDate();
+      data.createTime = createTime;
+      touchHistoryItemInList(state.list, data.id, createTime);
+      void updateHistory(data.id, { createTime });
+    },
+    [content.autoSort],
   );
 
   useMount(() => {
@@ -184,6 +206,9 @@ const Main = () => {
 
     const result = await pasteToClipboard(data, true);
     handlePasteResult(result);
+    if (result.success) {
+      touchHistoryItem(data);
+    }
   });
 
   // 监听复制文件路径的快捷键
@@ -221,6 +246,9 @@ const Main = () => {
 
       const result = await pasteToClipboard(data);
       handlePasteResult(result);
+      if (result.success) {
+        touchHistoryItem(data);
+      }
     },
     [state.quickPasteKeys],
   );
@@ -230,6 +258,7 @@ const Main = () => {
       value={{
         handlePasteResult,
         rootState: state,
+        touchHistoryItem,
       }}
     >
       <Audio ref={audioRef} />

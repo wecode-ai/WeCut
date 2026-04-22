@@ -73,7 +73,7 @@ export const showWindow = (label?: WindowLabel) => {
  * 隐藏窗口
  */
 export const hideWindow = () => {
-  invoke(COMMAND.HIDE_WINDOW);
+  return invoke(COMMAND.HIDE_WINDOW);
 };
 
 /**
