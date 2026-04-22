@@ -1,7 +1,7 @@
 {
 	"name": "wecut",
 	"description": "一款开源的跨平台剪贴板管理工具",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"type": "module",
 	"scripts": {
 		"clean": "rm -rf dist src-tauri/target src-tauri/icons",
