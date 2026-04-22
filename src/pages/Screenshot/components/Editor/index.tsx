@@ -1,6 +1,6 @@
 import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { message } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { getCanvasPixelSize } from "@/utils/canvas-hidpi";
 import { logPerf } from "@/utils/perf-log";
 import {
@@ -14,6 +14,7 @@ import Toolbar, { type DrawTool } from "../Toolbar";
 import MiniButton from "./MiniButton";
 import OcrOverlay from "./OcrOverlay";
 import SelectionBorder from "./SelectionBorder";
+import { resolveToolbarPosition } from "./toolbar-position";
 import type { EditorProps } from "./types";
 import { useDrawing } from "./useDrawing";
 import { useSelection } from "./useSelection";
@@ -333,67 +334,48 @@ const Editor: React.FC<EditorProps> = ({
   const windowWidth = pinned ? Math.max(selection.w, pinMinWidth) : selection.w;
   const canvasOffsetX = pinned ? (windowWidth - selection.w) / 2 : 0;
 
-  // 工具栏尺寸 ref：初始化后基本固定，用 ref 存储避免触发重渲染
-  const toolbarSizeRef = useRef({ h: 0, w: 0 });
+  const [toolbarSize, setToolbarSize] = useState({ h: 0, w: 0 });
 
-  // 初始化时读取工具栏尺寸（两帧确保 DOM 已渲染）
-  useEffect(() => {
-    if (pinned) return;
-    let id1: number;
-    const id0 = requestAnimationFrame(() => {
-      id1 = requestAnimationFrame(() => {
-        const w = toolbarRef.current?.scrollWidth ?? 0;
-        const h = toolbarRef.current?.scrollHeight ?? 0;
-        if (w > 0) {
-          toolbarSizeRef.current = { h, w };
-        }
-      });
+  useLayoutEffect(() => {
+    const toolbarEl = toolbarRef.current;
+    if (!toolbarEl) {
+      setToolbarSize({ h: 0, w: 0 });
+      return;
+    }
+
+    const measure = () => {
+      const nextSize = {
+        h: toolbarEl.scrollHeight,
+        w: toolbarEl.scrollWidth,
+      };
+      setToolbarSize((prev) =>
+        prev.w === nextSize.w && prev.h === nextSize.h ? prev : nextSize,
+      );
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      measure();
     });
-    return () => {
-      cancelAnimationFrame(id0);
-      cancelAnimationFrame(id1);
-    };
-  }, [pinned, activeTool]);
+    observer.observe(toolbarEl);
+    return () => observer.disconnect();
+  }, [pinned, toolbarExpanded]);
 
-  // 工具栏位置：直接从 currentSel 实时计算，不经过 state，消除 rAF 延迟跳动
-  // 返回相对于容器（containerX/Y）的偏移量
-  const getToolbarPos = () => {
-    const toolbarW = toolbarSizeRef.current.w;
-    const toolbarH = toolbarSizeRef.current.h;
-
-    // 水平位置：右对齐选区右边缘，但不超出屏幕左右边界
-    const idealLeft = canvasOffsetX + currentSel.w - toolbarW;
-    const minLeft = 8 - currentSel.x;
-    const maxLeft = window.innerWidth - currentSel.x - toolbarW - 8;
-    const clampedLeft =
-      toolbarW > 0
-        ? Math.min(Math.max(idealLeft, minLeft), maxLeft)
-        : idealLeft;
-
-    // 垂直位置：检测工具栏是否会与 Dock/任务栏冲突
-    // screen.availHeight 是不含 Dock/任务栏的可用屏幕高度（macOS 会减去 Dock 高度）
-    const toolbarBottomAbs = currentSel.y + currentSel.h + 10 + toolbarH;
-    const availBottom = screen.availHeight - 8;
-
-    if (toolbarH === 0 || toolbarBottomAbs <= availBottom) {
-      // 下方空间足够（或尺寸未初始化），显示在选区下方
-      return { left: clampedLeft, top: currentSel.h + 10 };
-    }
-
-    const toolbarTopAbs = currentSel.y - 10 - toolbarH;
-    if (toolbarTopAbs >= 0) {
-      // 上方有足够空间，显示在选区上方
-      return { left: clampedLeft, top: -(10 + toolbarH) };
-    }
-
-    // 上下都不够，显示在选区内部右上角
-    return {
-      left: canvasOffsetX + currentSel.w - (toolbarW > 0 ? toolbarW + 8 : 8),
-      top: 8,
-    };
-  };
-
-  const toolbarPos = pinned ? null : getToolbarPos();
+  const toolbarPos = pinned
+    ? null
+    : resolveToolbarPosition({
+        availableHeight: screen.availHeight,
+        canvasOffsetX,
+        selection: currentSel,
+        toolbarHeight: toolbarSize.h,
+        toolbarWidth: toolbarSize.w,
+        viewportWidth: window.innerWidth,
+      });
 
   const menuLeft = canvasOffsetX + selection.w / 2;
   const ocrOverlayVisible = ocrBlocks !== null;
@@ -568,15 +550,16 @@ const Editor: React.FC<EditorProps> = ({
         <div
           ref={toolbarRef}
           style={{
-            // resize/move 时：position fixed，绝对坐标 = currentSel.x/y + toolbarPos 偏移
+            // resize/move 时：position fixed，直接用选区实时绝对坐标
             // pinned 时：position absolute，居中于选区下方
-            // 正常时：position fixed，绝对坐标（容器固定在 selection，需要用 fixed 跟 currentSel）
-            left: pinned ? menuLeft : currentSel.x + (toolbarPos?.left ?? 0),
+            left: pinned ? menuLeft : (toolbarPos?.left ?? currentSel.x),
             position: pinned ? "absolute" : "fixed",
             top: pinned
               ? currentSel.h + 10
-              : currentSel.y + (toolbarPos?.top ?? currentSel.h + 10),
-            transform: pinned ? "translateX(-50%)" : "none",
+              : (toolbarPos?.top ?? currentSel.y + currentSel.h + 10),
+            transform: pinned
+              ? "translateX(-50%)"
+              : (toolbarPos?.transform ?? "none"),
             zIndex: 30,
           }}
         >
