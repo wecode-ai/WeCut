@@ -30,7 +30,8 @@ export interface ItemProps {
 const Item: FC<ItemProps> = (props) => {
   const { index, data, handleNote, handleSend } = props;
   const { id, type, note, value } = data;
-  const { rootState, handlePasteResult } = useContext(MainContext);
+  const { rootState, handlePasteResult, touchHistoryItem } =
+    useContext(MainContext);
   const { content } = useSnapshot(clipboardStore);
 
   const handlePreview = () => {
@@ -64,6 +65,9 @@ const Item: FC<ItemProps> = (props) => {
       case LISTEN_KEY.CLIPBOARD_ITEM_PASTE: {
         const result = await runActivateAction(data);
         handlePasteResult?.(result);
+        if (result.success) {
+          touchHistoryItem?.(data);
+        }
         return;
       }
       case LISTEN_KEY.CLIPBOARD_ITEM_DELETE:
@@ -90,6 +94,9 @@ const Item: FC<ItemProps> = (props) => {
 
     const result = await runActivateAction(data);
     handlePasteResult?.(result);
+    if (result.success) {
+      touchHistoryItem?.(data);
+    }
   };
 
   const renderContent = () => {

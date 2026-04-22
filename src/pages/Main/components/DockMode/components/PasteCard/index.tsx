@@ -30,10 +30,13 @@ import { clipboardStore } from "@/stores/clipboard";
 import { globalStore } from "@/stores/global";
 import type { DatabaseSchemaHistory } from "@/types/database";
 import { dayjs } from "@/utils/dayjs";
+import { runDockAction } from "@/utils/dockAction";
 import { isImage, isLinux } from "@/utils/is";
 
 export interface PasteCardProps {
   active?: boolean;
+  afterHide?: () => void;
+  beforeActivate?: () => void;
   data: DatabaseSchemaHistory;
   deleteModal: HookAPI;
   handleNote: () => void;
@@ -72,10 +75,20 @@ const getTypeColorClass = (type: DatabaseSchemaHistory["type"]) => {
 };
 
 const PasteCard: FC<PasteCardProps> = (props) => {
-  const { active, data, deleteModal, handleNote, handleSend, index, onSelect } =
-    props;
+  const {
+    active,
+    afterHide,
+    beforeActivate,
+    data,
+    deleteModal,
+    handleNote,
+    handleSend,
+    index,
+    onSelect,
+  } = props;
   const { id, count, createTime, favorite, note, subtype, type, value } = data;
-  const { rootState, handlePasteResult } = useContext(MainContext);
+  const { rootState, handlePasteResult, touchHistoryItem } =
+    useContext(MainContext);
   const { t, i18n } = useTranslation();
   const { wegent } = useSnapshot(clipboardStore);
   const { env, shortcut } = useSnapshot(globalStore);
@@ -333,6 +346,8 @@ const PasteCard: FC<PasteCardProps> = (props) => {
   };
 
   const { handleContextMenu, handleDelete, handleFavorite } = useContextMenu({
+    afterHide,
+    beforeActivate,
     data,
     deleteModal,
     handleNext,
@@ -348,9 +363,18 @@ const PasteCard: FC<PasteCardProps> = (props) => {
       case LISTEN_KEY.CLIPBOARD_ITEM_PREVIEW:
         return handlePreview();
       case LISTEN_KEY.CLIPBOARD_ITEM_PASTE: {
-        const result = await runActivateAction(data);
-        handlePasteResult?.(result);
-        await hideWindow();
+        await runDockAction({
+          action: () => runActivateAction(data),
+          afterHide,
+          beforeAction: beforeActivate,
+          hideWindow,
+          onResult: (result) => {
+            handlePasteResult?.(result);
+            if (result.success) {
+              touchHistoryItem?.(data);
+            }
+          },
+        });
         return;
       }
       case LISTEN_KEY.CLIPBOARD_ITEM_DELETE:
@@ -526,9 +550,18 @@ const PasteCard: FC<PasteCardProps> = (props) => {
 
   const handleCardDoubleClick = async () => {
     rootState.activeId = id;
-    const result = await runActivateAction(data);
-    handlePasteResult?.(result);
-    await hideWindow();
+    await runDockAction({
+      action: () => runActivateAction(data),
+      afterHide,
+      beforeAction: beforeActivate,
+      hideWindow,
+      onResult: (result) => {
+        handlePasteResult?.(result);
+        if (result.success) {
+          touchHistoryItem?.(data);
+        }
+      },
+    });
   };
 
   const cardContent = (
